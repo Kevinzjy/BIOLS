@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- encoding:utf-8 -*-
-# modified from pydf
+# modified from pydf [https://github.com/garabik/pydf]
 
 import sys
 import unicodedata
