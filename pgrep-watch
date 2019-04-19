@@ -1,0 +1,16 @@
+#!/bin/sh
+PNAME=$1
+USR=$2
+while true
+do
+    pid=$(pgrep $PNAME -u $USR)
+    var=`date "+%Y-%m-%d %H:%M:%S"`
+    if [ -n "$pid" ];
+    then
+        sleep 60
+    else
+        pushover "${pid}(${PNAME}) of ${USR} finished"
+        break
+    fi
+done
+    

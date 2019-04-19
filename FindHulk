@@ -1,0 +1,4 @@
+#!/bin/sh
+# Usage: FindHulk <dir>
+DIR=$1
+find $1 -type f -size +50000k -exec ls -lh {} \; 2>/dev/null | sort -h -r -k 5

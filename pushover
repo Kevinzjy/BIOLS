@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+import os
+import platform
+import click
+import json
+import urllib.request, urllib.parse, urllib.error
+import http.client
+
+
+def get_title():
+    user = os.environ.get('USER', '')
+    host = platform.node()
+    return '{}@{}'.format(user, host)
+
+
+def pushover(title, msg):
+    conn = http.client.HTTPSConnection("api.pushover.net:443")
+    with open(os.environ['HOME'] + '/.pushover.json', 'r') as f:
+        config = json.load(f)
+
+    conn.request("POST", "/1/messages.json",
+        urllib.parse.urlencode({
+            "token"   : config['token'],
+            "user"    : config['user'],
+            "title"   : title,
+            "message" : msg,
+        }), {"Content-type": "application/x-www-form-urlencoded"})
+    conn.getresponse()
+
+
+@click.command()
+@click.option('--title', '-t', default=get_title(), help='Title of message')
+@click.argument('msg', nargs=1)
+def main(title, msg):
+    """Push message to Pushover service, please provide token and user in JSON format at $HOME/.pushover.json"""
+    hostname = platform.node()
+    if hostname == 'node77':
+        pushover(title, msg)
+    else:
+        os.system('ssh node77 "pushover -t \'{}\' \'{}\'"'.format(title, msg))
+
+
+if __name__ == '__main__':
+    main()
