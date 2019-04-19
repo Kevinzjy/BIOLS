@@ -71,13 +71,14 @@ class Bar(object):
         return '[' + manglestring(size * BAR, self.width - 2, pos, FILL) + ']'
 
 
-def get_queue():
+def get_queue(q="all"):
     """Get nodes for all quque"""
     queue_info = defaultdict(list)
     status, output = getstatusoutput("qmgr -c 'p s' | grep queue | grep acl_hosts | awk '{print $3,$6}'")
     for line in output.splitlines():
         queue, node = line.split()
-        queue_info[node] = queue
+        if q == 'all' or queue == q:
+            queue_info[node] = queue
         # queue_info[queue].append(node)
     return queue_info
 
@@ -220,7 +221,10 @@ def display_table(table):
 
 def main():
     """Main func"""
-    queue_info = get_queue()
+    queue = "all"
+    if len(sys.argv) > 1:
+        queue = sys.argv[1]
+    queue_info = get_queue(queue)
     nodes_info = get_stat(queue_info)
     display_table(nodes_info)
 
