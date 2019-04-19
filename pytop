@@ -131,7 +131,7 @@ def get_stat(queue_info):
             used = None
         else:
             status = node.find('status').text
-            status_d = {i.split('=')[0]: i.split('=')[1] for i in status.split(',')}
+            status_d = dict((i.split('=')[0], i.split('=')[1]) for i in status.split(','))
 
             mem = float(status_d['totmem'][:-2]) / 1024 / 1024
             aval = float(status_d['availmem'][:-2]) / 1024 / 1024
@@ -147,11 +147,11 @@ def get_stat(queue_info):
         node_info = [
             (COLORS['default'], name),
             (COLORS[STATE_COLOR[state]], state),
-            (COLORS[STATE_COLOR[state]], '' if used is None else '{:.1f}'.format(used)),
-            (COLORS[STATE_COLOR[state]], '' if mem is None else '{:.1f}'.format(mem)),
-            (COLORS[STATE_COLOR[state]], '' if aval is None else '{:.1f}'.format(aval)),
+            (COLORS[STATE_COLOR[state]], '' if used is None else '{0:.1f}'.format(used)),
+            (COLORS[STATE_COLOR[state]], '' if mem is None else '{0:.1f}'.format(mem)),
+            (COLORS[STATE_COLOR[state]], '' if aval is None else '{0:.1f}'.format(aval)),
             (COLORS['default'], ncpus),
-            (COLORS[STATE_COLOR[state]], '{:2d}'.format(load)),
+            (COLORS[STATE_COLOR[state]], '{0:2d}'.format(load)),
             (COLORS[STATE_COLOR[state]], Bar(percentage=load/ncpus)),
             (COLORS['default'], queue),
         ]
