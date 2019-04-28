@@ -110,7 +110,7 @@ STATE = {
     'UNKN': 'UNKN',
 }
 
-def get_stat(queue_info):
+def get_stat(queue_info, job_info):
     """Parse pbsnodes output"""
     nodes_stat = []
     status, output = getstatusoutput("pbsnodes -aox")
@@ -131,8 +131,7 @@ def get_stat(queue_info):
             aval = None
             used = None
         else:
-            status = node.find('status').text
-            status_d = dict((i.split('=')[0], i.split('=')[1]) for i in status.split(','))
+            status_d = dict((i.split('=')[0], i.split('=')[1]) for i in status.text.split(','))
 
             mem = float(status_d['totmem'][:-2]) / 1024 / 1024
             aval = float(status_d['availmem'][:-2]) / 1024 / 1024
@@ -140,10 +139,29 @@ def get_stat(queue_info):
 
         # load = float(status_d['loadave'])
         jobs = node.find('jobs')
-        load = 0 if jobs is None else len(jobs.text.split(','))
+
+        tmp_jobs = {}
+        if jobs is not None:
+            node_jobs = jobs.text.split(',')
+            load = len(node_jobs)
+
+            for i in node_jobs:
+                tmp_jobs[i.split('/')[1]] = 1
+        else:
+            load = 0
 
         if load == 0 and state == 'busy':
             state = 'UNKN'
+
+        # User on node
+        user_on_node = []
+        if tmp_jobs:
+            for i in tmp_jobs:
+                if i in job_info:
+                    user_on_node.append('{0} {1}'.format(i.split('.')[0], job_info[i]))
+                else:
+                    user_on_node.append(i.split('.')[0])
+        user_str = ', '.join(user_on_node)
 
         node_info = [
             (COLORS['default'], name),
@@ -153,8 +171,9 @@ def get_stat(queue_info):
             (COLORS[STATE_COLOR[state]], '' if aval is None else '{0:.1f}'.format(aval)),
             (COLORS['default'], ncpus),
             (COLORS[STATE_COLOR[state]], '{0:2d}'.format(load)),
-            (COLORS[STATE_COLOR[state]], Bar(percentage=load/ncpus)),
+            (COLORS[STATE_COLOR[state]], Bar(percentage=float(load)/ncpus)),
             (COLORS['default'], queue),
+            (COLORS['default'], user_str),
         ]
         nodes_stat.append(node_info)
     return nodes_stat
@@ -163,7 +182,7 @@ def get_stat(queue_info):
 FORMAT = [
     ('node', 10, "l"), ('state', 7, "r"),
     ('used', 7, "r"), ('mem', 7, "r"), ('avail', 7, "r"), ('ncpus', 5, "r"), ('perc', 7, "r"),
-    ('bar', 40, "l"), ('queue', 11, "l")
+    ('bar', 40, "l"), ('queue', 11, "l"), ('job_list', 11, 'l'),
 ]
 def manglestring(s, l, pos, fillchar=' '):
     "cut string to fit exactly into l chars"
@@ -197,6 +216,7 @@ HEADER = {
     'perc': "Load",
     'bar': str(Bar(header=True)),
     'queue': "Queue",
+    'job_list': "Job_List",
 }
 def display_table(table):
     header_colour = "yellow"
@@ -209,14 +229,28 @@ def display_table(table):
     out('\n')
 
     for row in table:
-        for i, j in enumerate(row):
+        for i, j in enumerate(row[:-1]):
             width, pos = FORMAT[i][1:3]
             out(j[0])
             out(manglestring(str(j[1]), width, pos))
             out(COLORS['none'])
             out(' ')
         out(COLORS['default'])
+        out(row[-1][1])
+        out(COLORS['default'])
         out('\n')
+
+
+def get_jobinfo():
+    """Get username for each job"""
+    job_info = {}
+    status, output = getstatusoutput('qstat -r')
+    if output:
+        for line in output.splitlines()[5:]:
+            content = line.split()
+            job_id, username = content[0], content[1]
+            job_info[job_id] = username
+    return job_info
 
 
 def main():
@@ -224,8 +258,10 @@ def main():
     queue = "all"
     if len(sys.argv) > 1:
         queue = sys.argv[1]
+
+    job_info = get_jobinfo()
     queue_info = get_queue(queue)
-    nodes_info = get_stat(queue_info)
+    nodes_info = get_stat(queue_info, job_info)
     display_table(nodes_info)
 
 
