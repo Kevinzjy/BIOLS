@@ -146,7 +146,8 @@ def get_stat(queue_info, job_info):
             load = len(node_jobs)
 
             for i in node_jobs:
-                tmp_jobs[i.split('/')[1]] = 1
+                job_id = i.split('/')[1]
+                tmp_jobs[job_id] = tmp_jobs.setdefault(job_id, 0) + 1
         else:
             load = 0
 
@@ -158,9 +159,9 @@ def get_stat(queue_info, job_info):
         if tmp_jobs:
             for i in tmp_jobs:
                 if i in job_info:
-                    user_on_node.append('{0} {1}'.format(i.split('.')[0], job_info[i]))
+                    user_on_node.append('{0}/{1} {2}'.format(tmp_jobs[i], i.split('.')[0], job_info[i]))
                 else:
-                    user_on_node.append(i.split('.')[0])
+                    user_on_node.append('{0}/{1}'.format(tmp_jobs[i], i.split('.')[0]))
         user_str = ', '.join(user_on_node)
 
         node_info = [
