@@ -71,18 +71,6 @@ class Bar(object):
         return '[' + manglestring(size * BAR, self.width - 2, pos, FILL) + ']'
 
 
-def get_queue(q="all"):
-    """Get nodes for all quque"""
-    queue_info = defaultdict(list)
-    status, output = getstatusoutput("qmgr -c 'p s' | grep queue | grep acl_hosts | awk '{print $3,$6}'")
-    for line in output.splitlines():
-        queue, node = line.split()
-        if q == 'all' or queue == q:
-            queue_info[node] = queue
-        # queue_info[queue].append(node)
-    return queue_info
-
-
 STATE_COLOR = {
     'free': "green",
     'busy': "cyan",
@@ -110,16 +98,14 @@ STATE = {
     'UNKN': 'UNKN',
 }
 
-def get_stat(queue_info, job_info):
+def get_stat(job_info):
     """Parse pbsnodes output"""
     nodes_stat = []
     status, output = getstatusoutput("pbsnodes -aox")
     root = ET.fromstring(output)
     for node in root:
         name = node.find('name').text
-        if name not in queue_info:
-            continue
-        queue = queue_info[name]
+        queue = node.find('properties').text
         state = STATE[node.find('state').text]
 
         ncpus = int(node.find('np').text)
@@ -261,8 +247,7 @@ def main():
         queue = sys.argv[1]
 
     job_info = get_jobinfo()
-    queue_info = get_queue(queue)
-    nodes_info = get_stat(queue_info, job_info)
+    nodes_info = get_stat(job_info)
     display_table(nodes_info)
 
 
