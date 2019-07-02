@@ -53,7 +53,7 @@ BAR = '#'
 FILL = '.'
 class Bar(object):
     "Progress bar"
-    def __init__(self, percentage=0, width=40, header=False):
+    def __init__(self, percentage=0, width=30, header=False):
         self.percentage = percentage
         self.width = width
         self.header = header
@@ -98,7 +98,7 @@ STATE = {
     'UNKN': 'UNKN',
 }
 
-def get_stat(job_info):
+def get_stat(job_info, target_queue):
     """Parse pbsnodes output"""
     nodes_stat = []
     status, output = getstatusoutput("pbsnodes -aox")
@@ -106,6 +106,12 @@ def get_stat(job_info):
     for node in root:
         name = node.find('name').text
         queue = node.find('properties').text
+        if queue == 'manager':
+            continue
+
+        if target_queue != "all" and queue != target_queue:
+            continue
+
         state = STATE[node.find('state').text]
 
         ncpus = int(node.find('np').text)
@@ -116,12 +122,14 @@ def get_stat(job_info):
             mem = None
             aval = None
             used = None
+            loadave = None
         else:
             status_d = dict((i.split('=')[0], i.split('=')[1]) for i in status.text.split(','))
 
             mem = float(status_d['totmem'][:-2]) / 1024 / 1024
             aval = float(status_d['availmem'][:-2]) / 1024 / 1024
             used = mem - aval
+            loadave = float(status_d['loadave'])
 
         # load = float(status_d['loadave'])
         jobs = node.find('jobs')
@@ -129,15 +137,15 @@ def get_stat(job_info):
         tmp_jobs = {}
         if jobs is not None:
             node_jobs = jobs.text.split(',')
-            load = len(node_jobs)
+            core = len(node_jobs)
 
             for i in node_jobs:
                 job_id = i.split('/')[1]
                 tmp_jobs[job_id] = tmp_jobs.setdefault(job_id, 0) + 1
         else:
-            load = 0
+            core = 0
 
-        if load == 0 and state == 'busy':
+        if core == 0 and state == 'busy':
             state = 'UNKN'
 
         # User on node
@@ -153,12 +161,13 @@ def get_stat(job_info):
         node_info = [
             (COLORS['default'], name),
             (COLORS[STATE_COLOR[state]], state),
+            (COLORS[STATE_COLOR[state]], loadave),
             (COLORS[STATE_COLOR[state]], '' if used is None else '{0:.1f}'.format(used)),
             (COLORS[STATE_COLOR[state]], '' if mem is None else '{0:.1f}'.format(mem)),
             (COLORS[STATE_COLOR[state]], '' if aval is None else '{0:.1f}'.format(aval)),
             (COLORS['default'], ncpus),
-            (COLORS[STATE_COLOR[state]], '{0:2d}'.format(load)),
-            (COLORS[STATE_COLOR[state]], Bar(percentage=float(load)/ncpus)),
+            (COLORS[STATE_COLOR[state]], '{0:2d}'.format(core)),
+            (COLORS[STATE_COLOR[state]], Bar(percentage=float(core)/ncpus)),
             (COLORS['default'], queue),
             (COLORS['default'], user_str),
         ]
@@ -167,9 +176,9 @@ def get_stat(job_info):
 
 
 FORMAT = [
-    ('node', 10, "l"), ('state', 7, "r"),
+    ('node', 10, "l"), ('state', 7, "r"), ('load', 6, "r"),
     ('used', 7, "r"), ('mem', 7, "r"), ('avail', 7, "r"), ('ncpus', 5, "r"), ('perc', 7, "r"),
-    ('bar', 40, "l"), ('queue', 11, "l"), ('job_list', 11, 'l'),
+    ('bar', 30, "l"), ('queue', 11, "l"), ('job_list', 11, 'l'),
 ]
 def manglestring(s, l, pos, fillchar=' '):
     "cut string to fit exactly into l chars"
@@ -196,11 +205,12 @@ def out(s):
 HEADER = {
     'node': "Node",
     'state': "State",
+    'load': "Load%",
     'used': "Used",
     'mem': "Mem",
     'avail': "Avail",
     'ncpus': 'CPU',
-    'perc': "Load",
+    'perc': "Proc",
     'bar': str(Bar(header=True)),
     'queue': "Queue",
     'job_list': "Job_List",
@@ -247,7 +257,7 @@ def main():
         queue = sys.argv[1]
 
     job_info = get_jobinfo()
-    nodes_info = get_stat(job_info)
+    nodes_info = get_stat(job_info, queue)
     display_table(nodes_info)
 
 
