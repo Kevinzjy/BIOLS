@@ -90,11 +90,11 @@ STATE = {
     'offline,job-exclusive,busy': 'offl',
     'down': 'down',
     'down,busy': 'down',
-    'down,offline': 'down',
+    'down,offline': 'offl',
     'down,job-exclusive': 'down',
-    'down,offline,job-exclusive': 'down',
-    'down,offline,busy': 'down',
-    'down,offline,job-exclusive, busy': 'down',
+    'down,offline,job-exclusive': 'offl',
+    'down,offline,busy': 'offl',
+    'down,offline,job-exclusive, busy': 'offl',
     'UNKN': 'UNKN',
 }
 
