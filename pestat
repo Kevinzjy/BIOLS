@@ -1,7 +1,8 @@
 #! /usr/bin/python
 # -*- encoding:utf-8 -*-
 # modified from pydf [https://github.com/garabik/pydf]
-
+# Usage:
+#   pestat all/high/GPUfat/dev/middle
 import sys
 import unicodedata
 from collections import defaultdict
