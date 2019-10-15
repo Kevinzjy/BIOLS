@@ -50,6 +50,8 @@ class Job(object):
         self.walltime = jobinfo.walltime_used_sec()
 
     def job_update(self, jobinfo):
+        if self.walltime:
+            self.walltime = self.walltime_used_sec()
         if self.end:
             self.end = max(jobinfo.get_update_time(), self.end)
         else:
@@ -57,10 +59,7 @@ class Job(object):
         self.mem = max(self.mem, jobinfo.mem_used_kb())
 
     def accounting_time(self):
-        if self.start and self.end:
-            raw_time = max((self.end - self.start).total_seconds() * self.nproc, self.cput, self.walltime)
-        else:
-            raw_time = max(self.cput, self.walltime)
+        raw_time = max((self.end - self.start).total_seconds(), self.walltime * self.nproc)
         return raw_time
 
     @staticmethod
@@ -300,7 +299,7 @@ def main():
 
     # Filter job in start - end time
     print('Filter gridview jobs ..')
-    valid_job = all_jobs.loc[(start_timestamp < all_jobs['Start']) & (all_jobs['End'] < end_timestamp)]
+    valid_job = all_jobs.loc[(start_timestamp <= all_jobs['End']) & (all_jobs['End'] < end_timestamp)]
 
     # Sort by start time
     time_stamp = valid_job['Start'].sort_values()
@@ -327,7 +326,7 @@ def main():
                 tmp_date = i
                 continue
             else:
-                tmp_job = user_job.loc[(date_to_datetime(tmp_date) <= user_job['Start']) & (user_job['End'] < date_to_datetime(i))]
+                tmp_job = user_job.loc[(date_to_datetime(tmp_date) <= user_job['End']) & (user_job['End'] < date_to_datetime(i))]
                 if not tmp_job.empty:
                     tmp_stamp = tmp_date.strftime("%Y-%m-%d")
                     tmp_works = tmp_job.shape[0]
