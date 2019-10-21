@@ -246,6 +246,9 @@ def get_jobinfo():
     """Get username for each job"""
     job_info = {}
     status, output = getstatusoutput('qstat -r')
+    if status != 0:
+        return None
+
     if output:
         for line in output.splitlines()[5:]:
             content = line.split()
@@ -261,6 +264,8 @@ def main():
         queue = sys.argv[1]
 
     job_info = get_jobinfo()
+    if job_info is None:
+        sys.exit('Unable to communicate with PBS server host')
     nodes_info = get_stat(job_info, queue)
     display_table(nodes_info)
 
