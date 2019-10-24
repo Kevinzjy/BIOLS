@@ -211,7 +211,6 @@ def write_xls(xls_file, user_name, job_data, summary_data, c_timestamp, start_ti
 
     # Save book
     book.save(xls_file) 
-    print(user_name)
 
 
 def gridview_jobs(starttime, endtime, acct_dir):
@@ -313,38 +312,41 @@ def main():
     tmp_start = date(*start_tuple)
     tmp_end = date(*end_tuple)
 
-    print('Output gridview jobs by user ..')
-    for user in all_user:
-        user_job = valid_job.loc[valid_job['User'] == user]
-        outfile = '{}/{}.xls'.format(out_dir, user)
+    with open('{}/summary.csv'.format(out_dir), 'w') as out:
+        out.write('User,CPU_Time\n')
+        print('Output gridview jobs by user ..')
+        for user in all_user:
+            user_job = valid_job.loc[valid_job['User'] == user]
+            outfile = '{}/{}.xls'.format(out_dir, user)
 
-        tmp_jobs = []
-        # job in each day
-        tmp_date = None
-        for i in daterange(tmp_start, tmp_end + timedelta(1)):
-            if tmp_date is None:
-                tmp_date = i
-                continue
-            else:
-                tmp_job = user_job.loc[(date_to_datetime(tmp_date) <= user_job['End']) & (user_job['End'] < date_to_datetime(i))]
-                if not tmp_job.empty:
-                    tmp_stamp = tmp_date.strftime("%Y-%m-%d")
-                    tmp_works = tmp_job.shape[0]
-                    tmp_cores = tmp_job['Nproc'].sum()
-                    tmp_ctime = tmp_job['Account_Time'].apply(time_to_hours).sum()
-                    tmp_mem = tmp_job['Mem'].sum() / 1024
-                    tmp_jobs.append((tmp_stamp, tmp_works, tmp_cores, '{:.4f}'.format(tmp_ctime), '{:.2f}'.format(tmp_mem)))
-                tmp_date = i
+            tmp_jobs = []
+            # job in each day
+            tmp_date = None
+            for i in daterange(tmp_start, tmp_end + timedelta(1)):
+                if tmp_date is None:
+                    tmp_date = i
+                    continue
+                else:
+                    tmp_job = user_job.loc[(date_to_datetime(tmp_date) <= user_job['End']) & (user_job['End'] < date_to_datetime(i))]
+                    if not tmp_job.empty:
+                        tmp_stamp = tmp_date.strftime("%Y-%m-%d")
+                        tmp_works = tmp_job.shape[0]
+                        tmp_cores = tmp_job['Nproc'].sum()
+                        tmp_ctime = tmp_job['Account_Time'].apply(time_to_hours).sum()
+                        tmp_mem = tmp_job['Mem'].sum() / 1024
+                        tmp_jobs.append((tmp_stamp, tmp_works, tmp_cores, '{:.4f}'.format(tmp_ctime), '{:.2f}'.format(tmp_mem)))
+                    tmp_date = i
 
-        user_jobs = pd.DataFrame(tmp_jobs, columns=['Data', 'Jobs', 'Cores', 'CPU_Time', 'Mem_MB'])
-        summary_data = [
-            '合计', 
-            user_jobs['Jobs'].sum(), 
-            user_jobs['Cores'].sum(),
-            '{:.4f}'.format(user_jobs['CPU_Time'].astype(float).sum()),
-            '{:.2f}'.format(user_jobs['Mem_MB'].astype(float).sum())
-        ]
-        write_xls(outfile, user, tmp_jobs, summary_data, c_timestamp, start_timestamp, end_timestamp)
+            user_jobs = pd.DataFrame(tmp_jobs, columns=['Data', 'Jobs', 'Cores', 'CPU_Time', 'Mem_MB'])
+            summary_data = [
+                '合计', 
+                user_jobs['Jobs'].sum(), 
+                user_jobs['Cores'].sum(),
+                '{:.4f}'.format(user_jobs['CPU_Time'].astype(float).sum()),
+                '{:.2f}'.format(user_jobs['Mem_MB'].astype(float).sum())
+            ]
+            write_xls(outfile, user, tmp_jobs, summary_data, c_timestamp, start_timestamp, end_timestamp)
+            out.write('{},{}\n'.format(user, summary_data[3]))
 
     print('All finished!')
 
