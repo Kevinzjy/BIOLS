@@ -18,6 +18,8 @@ except ImportError:
     from subprocess import getstatusoutput
 
 
+PBS_HOME='/usr/local/torque-4.2.9/bin/'
+
 #some default definitions
 COLORS = {
     'none'       :    "",
@@ -102,7 +104,7 @@ STATE = {
 def get_stat(job_info, target_queue):
     """Parse pbsnodes output"""
     nodes_stat = []
-    status, output = getstatusoutput("pbsnodes -aox")
+    status, output = getstatusoutput(PBS_HOME + "pbsnodes -aox")
     root = ET.fromstring(output)
     for node in root:
         name = node.find('name').text
@@ -131,7 +133,7 @@ def get_stat(job_info, target_queue):
             tmp_mem = float(status_d['totmem'][:-2]) / 1024 / 1024
             tmp_aval = float(status_d['availmem'][:-2]) / 1024 / 1024
             used = max(tmp_mem - tmp_aval, 0)
-	    aval = max(mem - used, 0)
+            aval = max(mem - used, 0)
             loadave = float(status_d['loadave'])
 
         # load = float(status_d['loadave'])
@@ -245,7 +247,7 @@ def display_table(table):
 def get_jobinfo():
     """Get username for each job"""
     job_info = {}
-    status, output = getstatusoutput('qstat -r')
+    status, output = getstatusoutput(PBS_HOME + 'qstat -r')
     if status != 0:
         return None
 
