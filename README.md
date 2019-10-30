@@ -4,6 +4,7 @@ Useful tools on BIOLS HPC
 #### Bioinformatic Tools
 - FastqToFasta : Convert FastQ to FastA format
 - FindHulk     : Find large space-consuming files in directory
+- fastcount    : count total base and N50 of input fasta/fastq
 
 #### PBS server maintenance
 - job-db-backup.cron : cron job for backing up PBS server accounting log
