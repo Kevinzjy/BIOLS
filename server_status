@@ -85,8 +85,8 @@ def server_status():
     down_nodes = {}
 
     status, output = getstatusoutput(PBS_HOME + "pbsnodes -aox")
-    if status is None:
-        return None, None
+    if status != 0:
+        return None, None, None
     
     root = ET.fromstring(output)
     for node in root:
@@ -114,6 +114,13 @@ def main():
     """Main func"""
     queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev']
     node_stat, aval_core, down_nodes = server_status()
+    if node_stat is None or aval_core is None or down_nodes is None:
+        out(COLORS['yellow'])
+        out('Warning: Cannot connect to PBS server')
+        out(COLORS['default'])
+        out('\n')
+        sys.exit()
+
     _, user = getstatusoutput('whoami')
     _, date = getstatusoutput('date')
     js = os.environ['HOME'] + '/.down_nodes'
