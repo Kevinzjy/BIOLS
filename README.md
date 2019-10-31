@@ -14,4 +14,5 @@ Useful tools on BIOLS HPC
 - pushover           : push notification to my PUSHOVER account
 - qdel_all           : delete all jobs of a user
 - rpm_unpack         : unpack rpm packages
+- server_status      : check status of PBS server when login (add to .bash_profile)
 - user_space         : account space usage for all user (home directory only)
