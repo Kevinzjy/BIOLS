@@ -104,7 +104,7 @@ def server_status():
         aval_cores[queue] += ncpus - core
 
         nodes_stat[state] += 1
-        if state == 'down':
+        if state == 'down' or state == 'offl':
             down_nodes[name] = 1
 
     return nodes_stat, aval_cores, down_nodes
