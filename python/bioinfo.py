@@ -1,4 +1,61 @@
-def enrichment_analysis(gene_list, input_libraries=None):
+import os
+import pandas as pd
+try:
+    from commands import  getstatusoutput
+except ImportError:
+    from subprocess import getstatusoutput
+
+
+class StupidError(Exception): 
+    # Constructor or Initializer 
+    def __init__(self, value): 
+        self.value = value 
+  
+    # __str__ is to print() the value 
+    def __str__(self): 
+        return(repr(self.value)) 
+
+
+def clusterProfiler(gene_list, id_type='SYMBOL'):
+    """Gene ontology analysis of a specific gene list, API of clusterProfiler (http://amp.pharm.mssm.edu/Enrichr/)
+    
+    Paramters
+    ---------
+    gene_list : list,
+        list of genes for analysis
+    id_type : str,
+        type of input list, ENSEMBL / SYMBOL / ENTREZID
+
+    Returns
+    -------
+    pd.DataFrame :
+        enriched data
+    """
+    from pathlib import Path
+    from utils import generate_random_key
+    token = generate_random_key(6).upper()
+
+    src_file = '/tmp/clusterProfiler_{}.txt'.format(token)
+    tar_file = '/tmp/clusterProfiler_{}_GO.txt'.format(token)
+
+    with open(src_file, 'w') as out:
+        for gene_id in gene_list:
+            out.write('{}\n'.format(gene_id))
+
+    rcmd = Path(__file__).parent.parent / 'R' / 'clusterProfiler.R'
+
+    # Run clusterProfiler
+    status, output = getstatusoutput('/usr/bin/Rscript {} --input {} --output {} --type {}'.format(rcmd, src_file, tar_file, id_type))
+    if status != 0:
+        raise StupidError(output)
+
+    # Get results
+    enriched_data = pd.read_csv(tar_file, index_col=0)
+
+    return enriched_data
+
+
+def enrichR(gene_list, input_libraries=None):
     """Gene ontology analysis of a specific gene list, API of enrichR (http://amp.pharm.mssm.edu/Enrichr/)
     
     Paramters
@@ -15,7 +72,6 @@ def enrichment_analysis(gene_list, input_libraries=None):
     """
     import json
     import requests
-    import pandas as pd
 
     ENRICHR_URL = 'http://amp.pharm.mssm.edu/Enrichr/addList'
     genes_str = '\n'.join(gene_list)
@@ -46,7 +102,6 @@ def enrichment_analysis(gene_list, input_libraries=None):
 def _gene_set_analysis(user_list_id, gene_set_library):
     import json
     import requests
-    import pandas as pd
     
     ENRICHR_URL = 'http://amp.pharm.mssm.edu/Enrichr/enrich'
     query_string = '?userListId=%s&backgroundType=%s'
