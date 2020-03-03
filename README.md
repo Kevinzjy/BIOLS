@@ -3,7 +3,7 @@ Useful tools on BIOLS HPC
 
 # Python programming tools
 - python/utils.py : useful tools
-- python/bio.py : python bioinformatic tools
+- python/bioinfo.py : python bioinformatic tools
 
 # Bioinformatic Tools
 - FastqToFasta : Convert FastQ to FastA format
