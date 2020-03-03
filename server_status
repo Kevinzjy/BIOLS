@@ -101,11 +101,11 @@ def server_status():
         jobs = node.find('jobs')
         core = 0 if jobs is None else len(jobs.text.split(',')) 
         
-        aval_cores[queue] += ncpus - core
-
         nodes_stat[state] += 1
         if state == 'down' or state == 'offl':
             down_nodes[name] = 1
+        else:
+            aval_cores[queue] += ncpus - core
 
     return nodes_stat, aval_cores, down_nodes
 
