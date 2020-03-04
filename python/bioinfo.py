@@ -88,7 +88,10 @@ def enrichR(gene_list, input_libraries=None):
     data = json.loads(response.text)
     
     user_id = data['userListId']
-    enrichr_libraries = ['GO_Biological_Process_2018', 'GO_Cellular_Component_2018', 'GO_Molecular_Function_2018']
+    if input_libraries is None:
+        enrichr_libraries = ['GO_Biological_Process_2018', 'GO_Cellular_Component_2018', 'GO_Molecular_Function_2018']
+    else:
+        enrichr_libraries = input_libraries
 
     enriched_data = []
     for library in enrichr_libraries:

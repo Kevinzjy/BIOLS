@@ -31,6 +31,19 @@ if (is.na(opt$input) || is.na(opt$output)) {
 # Load gene list
 gene_list <- as.character(read.csv(opt$input, header = FALSE)$V1)
 id_converted <- bitr(gene_list, fromType=opt$type, toType="ENTREZID", OrgDb="org.Hs.eg.db")
-go <- enrichGO(id_converted$ENTREZID, OrgDb = org.Hs.eg.db, ont="ALL", pAdjustMethod = "BH", pvalueCutoff = 0.05,
+bp <- enrichGO(id_converted$ENTREZID, OrgDb = org.Hs.eg.db, ont="BP", pAdjustMethod = "BH", pvalueCutoff = 0.05,
                qvalueCutoff = 0.05, keyType = 'ENTREZID')
-write.csv(go, file = opt$output)
+bp <- data.frame(simplify(bp))
+bp$ONTOLOGY = "BP"
+mf <- enrichGO(id_converted$ENTREZID, OrgDb = org.Hs.eg.db, ont="MF", pAdjustMethod = "BH", pvalueCutoff = 0.05,
+               qvalueCutoff = 0.05, keyType = 'ENTREZID')
+mf <- data.frame(simplify(mf))
+mf$ONTOLOGY = "MF"
+cc <- enrichGO(id_converted$ENTREZID, OrgDb = org.Hs.eg.db, ont="CC", pAdjustMethod = "BH", pvalueCutoff = 0.05,
+               qvalueCutoff = 0.05, keyType = 'ENTREZID')
+cc <- data.frame(simplify(cc))
+cc$ONTOLOGY = "CC"
+
+res <- rbind(bp, mf, cc)
+
+write.csv(res, file = opt$output)
