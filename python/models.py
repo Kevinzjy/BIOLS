@@ -44,7 +44,8 @@ def grid_KFold_RF(X, y, title, k=5, n_iter=100, n_estimators=100, random_state=N
 
     rf = RandomForestClassifier(n_jobs=6,
                                 n_estimators=n_estimators, 
-                                random_state=random_state)
+                                random_state=random_state,
+                                oob_score=True)
 
     if verbose:
         prog = utils.ProgressBar()
@@ -71,7 +72,7 @@ def grid_KFold_RF(X, y, title, k=5, n_iter=100, n_estimators=100, random_state=N
 
         # Train
         for train, test in zip(tmp_train, tmp_test):
-            rf = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state)
+            rf = RandomForestClassifier(n_estimators=n_estimators, random_state=random_state, oob_score=True)
             probas_ = rf.fit(X.iloc[train], y[train]).predict_proba(X.iloc[test])
 
             # Compute ROC curve and area the curve
