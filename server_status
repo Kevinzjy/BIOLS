@@ -158,7 +158,7 @@ def main():
 
     msg = ''
     if len(back_nodes) > 0:
-        msg += '{0} back online'.format('/'.join(sorted(back_nodes)))
+        msg += '{0} back online; '.format('/'.join(sorted(back_nodes)))
     if len(die_nodes) > 0:
         msg += '{0} went down'.format('/'.join(sorted(die_nodes)))
     if msg:
