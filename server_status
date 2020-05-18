@@ -112,7 +112,7 @@ def server_status():
 
 def main():
     """Main func"""
-    queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev']
+    queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev', 'silver4214']
     node_stat, aval_core, down_nodes = server_status()
     if node_stat is None or aval_core is None or down_nodes is None:
         out(COLORS['yellow'])
@@ -152,13 +152,17 @@ def main():
     out(COLORS['default'])
     out('\n')
     out(COLORS['green'])
-    out('Available cores: ' + ', '.join(['{1}/{0}'.format(i, aval_core[i]) for i in queues]))
+    out('Available cores: ' + ', '.join(['{1}/{0}'.format(i, aval_core[i]) for i in queues[:5]]))
+    out(COLORS['default'])
+    out('\n')
+    out(COLORS['green'])
+    out('                 ' + ', '.join(['{1}/{0}'.format(i, aval_core[i]) for i in queues[5:]]))
     out(COLORS['default'])
     out('\n')
 
     msg = ''
     if len(back_nodes) > 0:
-        msg += '{0} back online'.format('/'.join(sorted(back_nodes)))
+        msg += '{0} back online; '.format('/'.join(sorted(back_nodes)))
     if len(die_nodes) > 0:
         msg += '{0} went down'.format('/'.join(sorted(die_nodes)))
     if msg:

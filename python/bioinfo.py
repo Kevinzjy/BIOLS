@@ -16,6 +16,32 @@ class StupidError(Exception):
         return(repr(self.value)) 
 
 
+class GTFParser(object):
+    """
+    Class for parsing annotation gtf
+    """
+
+    def __init__(self, content):
+        self.contig = content[0]
+        self.source = content[1]
+        self.type = content[2]
+        self.start, self.end = int(content[3]), int(content[4])
+        self.strand = content[6]
+        self.attr_string = content[8]
+
+    @property
+    def attr(self):
+        """
+        Parsing attribute column in gtf file
+        """
+        import re
+        field = {}
+        for attr_values in [re.split(r'\s+', i.strip()) for i in self.attr_string.split(';')[:-1]]:
+            key, value = attr_values[0], attr_values[1:]
+            field[key] = ' '.join(value).strip('"')
+        return field
+
+
 def clusterProfiler(gene_list, id_type='SYMBOL'):
     """Gene ontology analysis of a specific gene list, API of clusterProfiler (http://amp.pharm.mssm.edu/Enrichr/)
     

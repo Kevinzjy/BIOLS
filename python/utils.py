@@ -63,7 +63,6 @@ def ranking(ranks, names, order=1):
     return dict(zip(names, ranks))
 
 
-
 def check_file(file_name):
     """Check if a file exists
 
@@ -183,3 +182,10 @@ def generate_random_key(length):
     import random
     import string
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
+
+
+def min_sorted_items(iters, key, reverse=False):
+    from operator import itemgetter
+    x = sorted(iters, key=itemgetter(key), reverse=reverse)
+    return [i for i in x if i[key] == x[0][key]]
+
