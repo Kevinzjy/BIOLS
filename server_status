@@ -112,7 +112,7 @@ def server_status():
 
 def main():
     """Main func"""
-    queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev', 'silver4214']
+    queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev', 'silver']
     node_stat, aval_core, down_nodes = server_status()
     if node_stat is None or aval_core is None or down_nodes is None:
         out(COLORS['yellow'])
