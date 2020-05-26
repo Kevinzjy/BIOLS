@@ -1,12 +1,3 @@
-import random
-import numpy as np
-import utils
-import matplotlib.pyplot as plt
-plt.rcParams['pdf.fonttype'] = 42
-plt.rcParams['font.family'] = "sans-serif"
-plt.rcParams['font.sans-serif'] = "Arial"
-
-
 class WeightedRandomizer:
     def __init__ (self, weights):
         self.__max = .0
@@ -16,22 +7,10 @@ class WeightedRandomizer:
             self.__weights.append ( (self.__max, value) )
 
     def random (self):
-        r = random.random() * self.__max
+        import random        r = random.random() * self.__max
         for ceil, value in self.__weights:
             if ceil > r: 
                 return value
-
-
-def get_n50(sequence_lengths):
-    sequence_lengths = sorted(sequence_lengths, reverse=True)
-    total_bases = sum(sequence_lengths)
-    target_bases = total_bases * 0.5
-    bases_so_far = 0
-    for sequence_length in sequence_lengths:
-        bases_so_far += sequence_length
-        if bases_so_far >= target_bases:
-            return sequence_length
-    return 0
 
 
 def grid_KFold_RF(X, y, title, k=5, n_iter=100, n_estimators=100, random_state=None, verbose=True, plot=False):
@@ -61,10 +40,16 @@ def grid_KFold_RF(X, y, title, k=5, n_iter=100, n_estimators=100, random_state=N
     else:
         title, mean_auc, std_auc
     """
+    import numpy as np
+    import matplotlib.pyplot as plt
     from scipy import interp
     from sklearn.model_selection import KFold
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import roc_curve, auc
+    from logger import ProgressBar
+    plt.rcParams['pdf.fonttype'] = 42
+    plt.rcParams['font.family'] = "sans-serif"
+    plt.rcParams['font.sans-serif'] = "Arial"
 
     tprs = []
     aucs = []
@@ -76,7 +61,7 @@ def grid_KFold_RF(X, y, title, k=5, n_iter=100, n_estimators=100, random_state=N
                                 oob_score=True)
 
     if verbose:
-        prog = utils.ProgressBar()
+        prog = logger.ProgressBar()
         prog.update(0)
 
     for i in range(n_iter):

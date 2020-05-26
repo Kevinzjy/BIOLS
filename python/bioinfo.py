@@ -42,112 +42,97 @@ class GTFParser(object):
         return field
 
 
-def clusterProfiler(gene_list, id_type='SYMBOL'):
-    """Gene ontology analysis of a specific gene list, API of clusterProfiler (http://amp.pharm.mssm.edu/Enrichr/)
-    
-    Paramters
-    ---------
-    gene_list : list,
-        list of genes for analysis
-    id_type : str,
-        type of input list, ENSEMBL / SYMBOL / ENTREZID
-
-    Returns
-    -------
-    pd.DataFrame :
-        enriched data
+class Faidx(object):
     """
-    from pathlib import Path
-    from utils import generate_random_key
-    token = generate_random_key(6).upper()
-
-    src_file = '/tmp/clusterProfiler_{}.txt'.format(token)
-    tar_file = '/tmp/clusterProfiler_{}_GO.txt'.format(token)
-
-    with open(src_file, 'w') as out:
-        for gene_id in gene_list:
-            out.write('{}\n'.format(gene_id))
-
-    rcmd = Path(__file__).parent.parent / 'R' / 'clusterProfiler.R'
-
-    # Run clusterProfiler
-    status, output = getstatusoutput('/usr/bin/Rscript {} --input {} --output {} --type {}'.format(rcmd, src_file, tar_file, id_type))
-    if status != 0:
-        raise StupidError(output)
-
-    # Get results
-    enriched_data = pd.read_csv(tar_file, index_col=0)
-
-    return enriched_data
-
-
-def enrichR(gene_list, input_libraries=None):
-    """Gene ontology analysis of a specific gene list, API of enrichR (http://amp.pharm.mssm.edu/Enrichr/)
-    
-    Paramters
-    ---------
-    gene_list : list,
-        list of genes for analysis
-    input_libraries : list,
-        Specific analysis libraries
-
-    Returns
-    -------
-    pd.DataFrame :
-        enriched data
+    API for unify pysam::Fastafile and mappy2::Aligner
     """
-    import json
-    import requests
+    def __init__(self, infile):
+        """Input reference genome fasta"""
+        import pysam
+        if not os.path.exists(infile + '.fai'):
+            sys.stderr.write('Index of reference genome not found, generating ...')
+        try:
+            faidx = pysam.FastaFile(infile)
+        except ValueError:
+            raise StupidError('Cannot generate index of reference genome, index file is missing')
+        except IOError:
+            raise StupidError('Cannot generate index of reference genome, file could not be opened')
 
-    ENRICHR_URL = 'http://amp.pharm.mssm.edu/Enrichr/addList'
-    genes_str = '\n'.join(gene_list)
-    description = 'auto enrichr list'
-    payload = {
-        'list': (None, genes_str),
-        'description': (None, description)
-    }
+        self.faidx = faidx
+        self.contig_len = {contig: faidx.get_reference_length(contig) for contig in faidx.references}
 
-    response = requests.post(ENRICHR_URL, files=payload)
-    if not response.ok:
-        raise Exception('Error analyzing gene list')
+    def seq(self, contig, start, end):
+        """
+        Return sequence of given coordinate
+        """
+        return self.faidx.fetch(contig, start, end)
 
-    data = json.loads(response.text)
-    
-    user_id = data['userListId']
-    if input_libraries is None:
-        enrichr_libraries = ['GO_Biological_Process_2018', 'GO_Cellular_Component_2018', 'GO_Molecular_Function_2018']
-    else:
-        enrichr_libraries = input_libraries
+    def close(self):
+        self.faidx.close()
 
-    enriched_data = []
-    for library in enrichr_libraries:
-        library_data = _gene_set_analysis(user_id, library)
-        library_data['Group'] = library
-        enriched_data.append(library_data)
-    enriched_data = pd.concat(enriched_data)
-    return enriched_data
-        
-    
-def _gene_set_analysis(user_list_id, gene_set_library):
-    import json
-    import requests
-    
-    ENRICHR_URL = 'http://amp.pharm.mssm.edu/Enrichr/enrich'
-    query_string = '?userListId=%s&backgroundType=%s'
 
-    response = requests.get(
-        ENRICHR_URL + query_string % (user_list_id, gene_set_library)
-     )
-    if not response.ok:
-        raise Exception('Error fetching enrichment results')
+class Fasta(object):
+    """
+    load fasta file into memory
+    """
+    def __init__(self, infile):
+        faidx = Faidx(infile)
+        self.contig_len = faidx.contig_len
+        self.genome = {ctg: faidx.seq(ctg, 0, size) for ctg, size in self.contig_len.items()}
+        faidx.close()
 
-    data = json.loads(response.text)
-    
-    enriched_data = pd.DataFrame(data[gene_set_library], 
-                             columns=['Rank', 'Term', 'p', 'z', 'CombinedScore', 'Genes', 'q', 'old-p', 'old-q'])
-    enriched_data.index = enriched_data['Rank']
-    enriched_data = enriched_data.drop('Rank', axis=1)
-    return enriched_data
+    def seq(self, contig, start, end):
+        if contig not in self.genome:
+            return None
+        return self.genome[contig][start:end]
+
+
+def index_annotation(gtf):
+    """
+    Generate binned index for element in gtf
+    """
+    from utils import tree
+
+    gtf_index = defaultdict(dict)
+    intron_index = defaultdict(dict)
+    splice_site_index = tree()
+
+    last_exon = None
+    with open(gtf, 'r') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            content = line.rstrip().split('\t')
+            # only include gene and exon feature for now
+            if content[2] not in ['gene', 'exon']:
+                continue
+
+            parser = GTFParser(content)
+
+            # Extract splice site
+            if content[2] == 'exon':
+                splice_site_index[parser.contig][parser.start][parser.strand]['start'] = 1
+                splice_site_index[parser.contig][parser.end][parser.strand]['end'] = 1
+
+                # Load intron
+                if last_exon is not None and last_exon.attr['transcript_id'] == parser.attr['transcript_id']:
+                    intron_start = last_exon.end if last_exon.strand == '+' else last_exon.start
+                    intron_end = parser.start if parser.strand == '+' else parser.end
+                    intron_strand = parser.strand
+
+                    intron_start, intron_end = min(intron_start, intron_end), max(intron_start, intron_end)
+                    start_div, end_div = intron_start // 500, intron_end // 500
+                    for i in range(start_div, end_div + 1):
+                        intron_index[parser.contig].setdefault(i, []).append((intron_start, intron_end, intron_strand))
+
+                last_exon = parser
+
+            # Binned index
+            start_div, end_div = parser.start // 500, parser.end // 500
+            for i in range(start_div, end_div + 1):
+                gtf_index[parser.contig].setdefault(i, []).append(parser)
+
+    return gtf_index, intron_index, splice_site_index
 
 
 def revcomp(seq):
@@ -157,3 +142,22 @@ def revcomp(seq):
     trantab = str.maketrans("ATCG", "TAGC")
     return seq.translate(trantab)[::-1]
 
+
+def get_bsj(seq, bsj):
+    """Return transformed sequence of given BSJ"""
+    return seq[bsj:] + seq[:bsj]
+    
+
+def get_n50(sequence_lengths):
+    """
+    Get n50 of sequence lengths
+    """
+    sequence_lengths = sorted(sequence_lengths, reverse=True)
+    total_bases = sum(sequence_lengths)
+    target_bases = total_bases * 0.5
+    bases_so_far = 0
+    for sequence_length in sequence_lengths:
+        bases_so_far += sequence_length
+        if bases_so_far >= target_bases:
+            return sequence_length
+    return 0
