@@ -22,5 +22,3 @@ Author: Jinyang Zhang
 Email: zhangjinyang@biols.ac.cn
 Version: 1.0""")
 print(sys.version)
-
-

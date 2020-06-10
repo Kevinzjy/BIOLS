@@ -18,7 +18,18 @@ except ImportError:
     from subprocess import getstatusoutput
 
 
+# Home of PBS directory
 PBS_HOME='/usr/local/torque-4.2.9/bin/'
+
+# Width of each row
+FORMAT = [
+    ('node', 10, "l"), ('state', 7, "r"), ('load', 6, "r"),
+    ('used', 7, "r"), ('mem', 7, "r"), ('avail', 7, "r"), ('ncpus', 5, "r"), ('perc', 7, "r"),
+    ('bar', 30, "l"), ('queue', 11, "l"), ('job_list', 11, 'l'),
+]
+
+# Exclude queue in blacklist
+QUEUE_BLACKLIST = ['manager']
 
 #some default definitions
 COLORS = {
@@ -109,7 +120,7 @@ def get_stat(job_info, target_queue):
     for node in root:
         name = node.find('name').text
         queue = node.find('properties').text
-        if queue == 'manager':
+        if queue in QUEUE_BLACKLIST:
             continue
 
         if target_queue != "all" and queue != target_queue:
@@ -181,11 +192,6 @@ def get_stat(job_info, target_queue):
     return nodes_stat
 
 
-FORMAT = [
-    ('node', 10, "l"), ('state', 7, "r"), ('load', 6, "r"),
-    ('used', 7, "r"), ('mem', 7, "r"), ('avail', 7, "r"), ('ncpus', 5, "r"), ('perc', 7, "r"),
-    ('bar', 30, "l"), ('queue', 11, "l"), ('job_list', 11, 'l'),
-]
 def manglestring(s, l, pos, fillchar=' '):
     "cut string to fit exactly into l chars"
     if pos == "r":
