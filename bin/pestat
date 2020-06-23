@@ -137,6 +137,7 @@ def get_stat(job_info, target_queue):
             aval = None
             used = None
             loadave = None
+            msg = None
         else:
             status_d = dict((i.split('=')[0], i.split('=')[1]) for i in status.text.split(','))
 
@@ -146,6 +147,8 @@ def get_stat(job_info, target_queue):
             used = max(tmp_mem - tmp_aval, 0)
             aval = max(mem - used, 0)
             loadave = float(status_d['loadave'])
+            
+            msg = status_d['message'] if 'message' in status_d else None
 
         # load = float(status_d['loadave'])
         jobs = node.find('jobs')
@@ -186,7 +189,7 @@ def get_stat(job_info, target_queue):
             (COLORS[STATE_COLOR[state]], '{0:2d}'.format(core)),
             (COLORS[STATE_COLOR[state]], Bar(percentage=float(core)/ncpus)),
             (COLORS['default'], queue),
-            (COLORS['default'], user_str),
+            (COLORS['default'], user_str if msg is None else msg),
         ]
         nodes_stat.append(node_info)
     return nodes_stat
