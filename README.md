@@ -40,3 +40,12 @@ Remember to add PDSH environment variable for using ssh
 export PDSH_RCMD_TYPE=ssh
 ```
 
+Batch run commands on nodes/queue
+
+```bash
+# Run on node201-210
+pdsh -l root -w node[201-210] "service pbs_mom restart" 
+
+# Run on group compute_nodes (defined under /root/.dsh/group)
+pdsh -g compute_nodes -l root "service pbs_mom restart"
+```
