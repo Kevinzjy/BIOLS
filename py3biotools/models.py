@@ -7,7 +7,8 @@ class WeightedRandomizer:
             self.__weights.append ( (self.__max, value) )
 
     def random (self):
-        import random        r = random.random() * self.__max
+        import random
+        r = random.random() * self.__max
         for ceil, value in self.__weights:
             if ceil > r: 
                 return value

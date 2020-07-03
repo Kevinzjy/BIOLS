@@ -1,5 +1,7 @@
+import pandas as pd
 
-def clusterProfiler(gene_list, id_type='SYMBOL'):
+
+def clusterProfiler(gene_list, id_type='SYMBOL', species='Hs'):
     """Gene ontology analysis of a specific gene list, API of clusterProfiler (http://amp.pharm.mssm.edu/Enrichr/)
     
     Paramters
@@ -8,14 +10,17 @@ def clusterProfiler(gene_list, id_type='SYMBOL'):
         list of genes for analysis
     id_type : str,
         type of input list, ENSEMBL / SYMBOL / ENTREZID
-
+    species : str,
+        reference database, Hs (Human) / Mm (Mouse)
     Returns
     -------
     pd.DataFrame :
         enriched data
     """
     from pathlib import Path
-    from utils import generate_random_key
+    from .utils import generate_random_key
+    from .bioinfo import StupidError
+    from subprocess import getstatusoutput
     token = generate_random_key(6).upper()
 
     src_file = '/tmp/clusterProfiler_{}.txt'.format(token)
@@ -28,7 +33,7 @@ def clusterProfiler(gene_list, id_type='SYMBOL'):
     rcmd = Path(__file__).parent.parent / 'R' / 'clusterProfiler.R'
 
     # Run clusterProfiler
-    status, output = getstatusoutput('/usr/bin/Rscript {} --input {} --output {} --type {}'.format(rcmd, src_file, tar_file, id_type))
+    status, output = getstatusoutput('/usr/bin/Rscript {} --input {} --output {} --type {} --db {}'.format(rcmd, src_file, tar_file, id_type, species))
     if status != 0:
         raise StupidError(output)
 
