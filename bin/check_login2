@@ -1,0 +1,3 @@
+#!/bin/bash
+SPACE=`ssh login2 "df -lh" | awk '{print $4}' | tail -n 1`
+/home/zhangjy/local/bin/pushover "$SPACE spaces left on login2"
