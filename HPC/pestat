@@ -442,6 +442,7 @@ NF==1 {	node=$1				# 1st line is nodename
 				else if (b[1]=="netload")	netload[node]=b[2]
 				else if (b[1]=="size")		size[node]=b[2]
 				else if (b[1]=="rectime")	rectime[node]=b[2]
+				else if (b[1]=="message")	msg[node]=b[2]
 			}
 		}
 		getline			# Get the next input line
@@ -598,6 +599,10 @@ NF==1 {	node=$1				# 1st line is nodename
 			printf (" %s%5d%1s%s", netmbitcolor, netmbit, netloadflag, NORMAL)
 		} else
 			printf ("    -  ")
-		printf ("%s\n", substr(jobiduserlist[node], 1, length(jobiduserlist[node])-1))
+		if (msg[node] != "") {
+			printf ("%s\n", msg[node])
+		} else {
+			printf ("%s\n", substr(jobiduserlist[node], 1, length(jobiduserlist[node])-1))
+		}
 	}
 }'
