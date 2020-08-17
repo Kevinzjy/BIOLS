@@ -24,13 +24,13 @@
 # Subsequent pestat commands will use the baseline netload.
 
 # Author: zhangjinyang@biols.ac.cn
-# Version: 3.0
+# Version: 2.15
 # Update Notes:
-#  - Support to specified nodes, if no nodelist given, show all nodes
+#  - Support to specified queue, if no nodelist given, show all nodes
 #  - Support to get job list from \"jobs\"(jobs_from_status=0), NOT "status->jobs"
 #  - Reapire numtask[] error for Torque v4 (tasklist is not splited with space)
 #  - Reapire disorder for columns with different width, formating them
-# Date: 08 November 2014
+# Date: 2020-08-17 20:27:04
 
 # Author: Ole.H.Nielsen@fysik.dtu.dk
 # URL: ftp://ftp.fysik.dtu.dk/pub/Torque/pestat
