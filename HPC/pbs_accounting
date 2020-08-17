@@ -1,0 +1,355 @@
+#!/usr/bin/python
+# coding=utf-8
+# Requirements: pbsacct xlwt pandas
+# Usage:
+#   pbs_accouting.py -i input_dir -o output_dir -s 20181001 -e 20191001
+import os
+import sys
+import argparse
+import pandas as pd
+from datetime import datetime, timedelta, date
+
+import pbsacct
+import xlwt
+
+
+class Job(object):
+
+    def __init__(self, job_id):
+        self.jobid = job_id
+        self.user = None
+        self.jobname = None
+        self.queue = None
+        self.nproc = None
+        self.start = None
+        self.end = None
+        self.mem = 0
+        self.cput = 0
+        self.walltime = 0
+
+    def job_exit(self, jobinfo):
+        self.user = jobinfo.user()
+        self.jobname = jobinfo.name()
+        self.queue = jobinfo.queue()
+        self.nproc = max(jobinfo.num_processors(), 1)
+        self.start = jobinfo.start()
+        self.end = jobinfo.end()
+        self.mem = jobinfo.mem_used_kb()
+        self.cput = jobinfo.cput_used_sec()
+        self.walltime = jobinfo.walltime_used_sec()
+
+    def job_start(self, jobinfo):
+        self.user = jobinfo.user()
+        self.jobname = jobinfo.name()
+        self.queue = jobinfo.queue()
+        self.nproc = max(jobinfo.num_processors(), 1)
+        self.start = jobinfo.start()
+        self.end = jobinfo.start()
+        self.mem = jobinfo.mem_used_kb()
+        self.cput = jobinfo.cput_used_sec()
+        self.walltime = jobinfo.walltime_used_sec()
+
+    def job_update(self, jobinfo):
+        if self.walltime:
+            self.walltime = self.walltime_used_sec()
+        if self.end:
+            self.end = max(jobinfo.get_update_time(), self.end)
+        else:
+            self.end = jobinfo.get_update_time()
+        self.mem = max(self.mem, jobinfo.mem_used_kb())
+
+    def accounting_time(self):
+        raw_time = max((self.end - self.start).total_seconds(), self.walltime * self.nproc)
+        return raw_time
+
+    @staticmethod
+    def __time_to_hours(t):
+        h = int(t / 3600)
+        m = int(t / 60) - h * 60
+        s = int(t) - m * 60 - h * 3600
+        return '{}:{}:{}'.format(h, m, s)
+
+    @property
+    def hours(self):
+        return self.__time_to_hours(self.accounting_time())
+
+    def __repr__(self):
+        tmp_line = [self.user, self.jobid, self.jobname, self.queue, self.nproc, self.mem,
+                    self.start, self.end, self.hours]
+        return ','.join([str(i) for i in tmp_line])
+
+
+def time_to_hours(t):
+    h, m, s = t.split(':')
+    return int(h) + float(m) / 60 + float(s) / 3600
+
+
+def time_to_datetime(x):
+    return datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
+
+
+def date_to_datetime(x):
+    args = x.timetuple()[:6]
+    return datetime(*args)
+
+
+def daterange(start_date, end_date):
+    for n in range(int ((end_date - start_date).days)):
+        yield start_date + timedelta(n)          
+
+
+def write_xls(xls_file, user_name, job_data, summary_data, c_timestamp, start_timestamp, end_timestamp):
+    """ Write job summary to file """
+
+    # delete old template
+    if os.path.exists(xls_file):
+        os.remove(xls_file)
+    rowx = 0
+
+    # open workbook
+    book = xlwt.Workbook(encoding='utf-8')
+    sheet = book.add_sheet('jm_user_report', cell_overwrite_ok=True)
+
+    # Empty row
+    sheet.write_merge(rowx, rowx, 0, 4)
+    rowx += 1
+
+    # Title Information
+    xlwt.add_palette_colour("jm_user_title", 8)
+    book.set_colour_RGB(8, 153, 153, 255)
+
+    title_style = xlwt.easyxf('font: bold on, height 280;align: wrap no,vert centre, horiz center;pattern: pattern solid, \
+                               fore-colour jm_user_title')
+    title_data = (u'用户作业统计报表详表')
+
+    sheet.write_merge(rowx, rowx, 0, 4, title_data, title_style)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = int(256*3.5)
+    rowx += 1
+
+    # Header Information
+    header_style = xlwt.easyxf('font: name sansserif, bold on, height 240;align: wrap no,vert center, horiz left')
+    header_data = [
+        '',
+        '  时间范围: {}--{}'.format(start_timestamp, end_timestamp),
+        '  生成时间: {}'.format(c_timestamp),
+        '  操作人员: root',
+        '',
+    ]
+    for row in header_data:
+        sheet.write_merge(rowx, rowx, 0, 4, row, header_style)
+        sheet.row(rowx).height_mismatch=True
+        sheet.row(rowx).height = int(256*1.8)
+        rowx += 1
+
+    # User ID
+    xlwt.add_palette_colour("jm_user_id", 9)
+    book.set_colour_RGB(9, 128, 128, 128)
+
+    user_style = xlwt.easyxf('font: name Arial, bold on, height 240;align: wrap no,vert centre, horiz left;pattern: pattern solid, \
+                              fore-colour jm_user_id')
+    user_data = (u'   用户: {}'.format(user_name))
+
+    sheet.write_merge(rowx, rowx, 0, 4, user_data, user_style)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = int(256*2.5)
+    rowx += 1
+
+    # Empty row
+    sheet.write_merge(rowx, rowx, 0, 4)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = int(256*1.15)
+    rowx += 1
+
+    # Job Information
+    xlwt.add_palette_colour("jm_user_jobs", 10)
+    book.set_colour_RGB(10, 204, 204, 255)
+
+    # Job header
+    job_header_style = xlwt.easyxf('font: name sansserif, bold on, height 240;align: wrap yes,vert centre, horiz center;pattern: pattern solid, \
+                                   fore-colour jm_user_jobs; border: top medium, right medium, bottom medium')
+    job_header = ('日期', '作业总数', '核数', 'CPU使用时间(小时)', '内存使用量(MB)')
+    for colx, value in enumerate(job_header):
+        sheet.write(rowx, colx, value, job_header_style)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = int(256*3)
+    rowx += 1
+
+    # Job content
+    job_style = xlwt.easyxf('font: name sansserif, bold off, height 200;align: wrap yes,vert centre, horiz center;pattern: pattern solid, \
+                             fore-colour jm_user_jobs; border: top medium, right medium, bottom medium')
+    for row in job_data:
+        for colx, value in enumerate(row):
+            sheet.write(rowx, colx, str(value), job_style)
+        sheet.row(rowx).height_mismatch=True
+        sheet.row(rowx).height = 500
+        rowx += 1
+
+    # Other information
+    xlwt.add_palette_colour("jm_user_summary", 11)
+    book.set_colour_RGB(11, 192, 192, 192)
+
+    summary_style = xlwt.easyxf('font: name sansserif, bold on, height 200;align: wrap yes,vert centre, horiz center;pattern: pattern solid, \
+                                 fore-colour jm_user_summary; border: top medium, right medium, bottom medium')
+    for colx, value in enumerate(summary_data):
+        sheet.write(rowx, colx, str(value), summary_style)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = 500
+    rowx += 1
+
+    # Empty row
+    sheet.write_merge(rowx, rowx, 0, 4)
+    sheet.row(rowx).height_mismatch=True
+    sheet.row(rowx).height = 500
+    rowx += 1
+
+    # set col width
+    col_width = (3000, 2700, 2100, 4050, 3400)
+    for colx, value in enumerate(col_width):
+        sheet.col(colx).width_mismatch=True
+        sheet.col(colx).width = value
+
+    # Save book
+    book.save(xls_file) 
+
+
+def gridview_jobs(starttime, endtime, acct_dir):
+    # State: A(Abort) D(Delete) C(Checked) E(Exited) Q(Queued) R(Retry) S(Start) T(Traced)
+    total_jobs = {}
+
+    print('Loading gridview jobs ..')
+    for f in sorted(os.listdir(acct_dir)):
+        if not starttime <= int(f) <= endtime:
+            continue
+
+        jobs = pbsacct.jobs_from_file(acct_dir + '/' + f)
+        for job_id in jobs.keys():
+            x = jobs[job_id]
+
+            # create Job
+            if job_id not in total_jobs:
+                total_jobs[job_id] = Job(job_id)
+
+            # update state
+            if x.get_state() == 'E':
+                total_jobs[job_id].job_exit(x)
+            elif x.get_state() == 'S':
+                total_jobs[job_id].job_start(x)
+            else:
+                total_jobs[job_id].job_update(x)
+
+    all_jobs = []
+    job_ids = sorted(total_jobs.keys())
+    for job_id in job_ids:
+        job_info = total_jobs[str(job_id)]
+        if job_info.start and job_info.end:
+            all_jobs.append([job_info.user, job_info.jobid, job_info.jobname, job_info.queue, job_info.nproc,
+                             job_info.mem, job_info.start, job_info.end, job_info.hours])
+    return pd.DataFrame(all_jobs, columns = ['User', 'Job_ID', 'Job_Name', 'Queue', 'Nproc', 'Mem', 'Start', 'End', 'Account_Time'])
+
+
+def main():
+    parser = argparse.ArgumentParser(prog='pbs_accounting')
+
+    # required arguments
+    parser.add_argument('-i', '--input', dest='input', metavar='DIR', default=None,
+                        help='input directory, /var/spool/torque/server_priv/accounting', )
+    parser.add_argument('-s', '--start', dest='start', metavar='start time', default=None,
+                        help='Start time, e.g. 20180101', )
+    parser.add_argument('-e', '--end', dest='end', metavar='end time', default=None,
+                        help='End time, e.g. 20181002', )
+    parser.add_argument('-o', '--out', dest='output', metavar='DIR', default=None,
+                        help='Output directory, default: ./', )
+    args = parser.parse_args()
+
+    if args.input is None:
+        sys.exit('use -i to specific input directory, e.g. /var/spool/torque/server_priv/accounting')
+    if args.start is None:
+        sys.exit('use -s to specific start time, e.g. 20181001')
+    if args.end is None:
+        sys.exit('use -e to specific end time, e.g. 20191001')
+    if args.output is None:
+        sys.exit('use -o to specific output directory, e.g. /histor/public/log/pbs_accounting')
+        
+    # Load grid view paramters
+    start_time = int(args.start)
+    end_time = int(args.end)
+    acct_dir = os.path.abspath(args.input)
+    out_dir = os.path.abspath(args.output)
+
+    # Output by user
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    all_jobs = gridview_jobs(start_time, end_time, acct_dir)
+    all_user = all_jobs['User'].unique()
+
+    # Filter available jobs
+    start_tuple = (int(str(start_time)[:4]), int(str(start_time)[4:6]), int(str(start_time)[6:]), )
+    end_tuple = (int(str(end_time)[:4]), int(str(end_time)[4:6]), int(str(end_time)[6:]), )
+
+    start = '-'.join([str(x) for x in start_tuple])
+    end = '-'.join([str(x) for x in end_tuple])
+
+    # Get current time
+    c_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    start_timestamp = time_to_datetime("{} 00:00:00".format(start))
+    end_timestamp = time_to_datetime("{} 00:00:00".format(end))
+
+    # Filter job in start - end time
+    print('Filter gridview jobs ..')
+    valid_job = all_jobs.loc[(start_timestamp <= all_jobs['End']) & (all_jobs['End'] < end_timestamp)]
+
+    # Sort by start time
+    time_stamp = valid_job['Start'].sort_values()
+    valid_job = valid_job.loc[time_stamp.sort_values().index]
+    valid_job.to_csv('{}/{}-{}.csv'.format(out_dir, start_time, end_time))
+
+    # Get timestamp
+    start_timestamp = start_timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    end_timestamp = end_timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+    tmp_start = date(*start_tuple)
+    tmp_end = date(*end_tuple)
+
+    with open('{}/summary.csv'.format(out_dir), 'w') as out:
+        out.write('User,CPU_Time\n')
+        print('Output gridview jobs by user ..')
+        for user in all_user:
+            user_job = valid_job.loc[valid_job['User'] == user]
+            outfile = '{}/{}.xls'.format(out_dir, user)
+
+            tmp_jobs = []
+            # job in each day
+            tmp_date = None
+            for i in daterange(tmp_start, tmp_end + timedelta(1)):
+                if tmp_date is None:
+                    tmp_date = i
+                    continue
+                else:
+                    tmp_job = user_job.loc[(date_to_datetime(tmp_date) <= user_job['End']) & (user_job['End'] < date_to_datetime(i))]
+                    if not tmp_job.empty:
+                        tmp_stamp = tmp_date.strftime("%Y-%m-%d")
+                        tmp_works = tmp_job.shape[0]
+                        tmp_cores = tmp_job['Nproc'].sum()
+                        tmp_ctime = tmp_job['Account_Time'].apply(time_to_hours).sum()
+                        tmp_mem = tmp_job['Mem'].sum() / 1024
+                        tmp_jobs.append((tmp_stamp, tmp_works, tmp_cores, '{:.4f}'.format(tmp_ctime), '{:.2f}'.format(tmp_mem)))
+                    tmp_date = i
+
+            user_jobs = pd.DataFrame(tmp_jobs, columns=['Data', 'Jobs', 'Cores', 'CPU_Time', 'Mem_MB'])
+            summary_data = [
+                '合计', 
+                user_jobs['Jobs'].sum(), 
+                user_jobs['Cores'].sum(),
+                '{:.4f}'.format(user_jobs['CPU_Time'].astype(float).sum()),
+                '{:.2f}'.format(user_jobs['Mem_MB'].astype(float).sum())
+            ]
+            write_xls(outfile, user, tmp_jobs, summary_data, c_timestamp, start_timestamp, end_timestamp)
+            out.write('{},{}\n'.format(user, summary_data[3]))
+
+    print('All finished!')
+
+
+if __name__ == '__main__':
+    main()

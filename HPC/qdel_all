@@ -1,0 +1,2 @@
+#!/bin/bash
+qselect -u $(whoami) -s Q | xargs qdel

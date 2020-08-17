@@ -1,0 +1,185 @@
+#! /usr/bin/python
+# -*- encoding:utf-8 -*-
+# modified from pydf [https://github.com/garabik/pydf]
+# Usage:
+#   pestat all/high/GPUfat/dev/middle
+
+import os
+import sys
+import unicodedata
+import json
+from collections import defaultdict
+
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+
+try:
+    from commands import  getstatusoutput
+except ImportError:
+    from subprocess import getstatusoutput
+
+
+PBS_HOME='/usr/local/torque-4.2.9/bin/'
+
+STATE = {
+    'job-exclusive': 'excl',
+    'job-exclusive,busy': 'busy',
+    'busy': 'busy',
+    'free': 'free',
+    'offline': 'offl',
+    'offline,job-exclusive': 'offl',
+    'offline,job-exclusive,busy': 'offl',
+    'down': 'down',
+    'down,busy': 'down',
+    'down,offline': 'offl',
+    'down,job-exclusive': 'down',
+    'down,offline,job-exclusive': 'offl',
+    'down,offline,busy': 'offl',
+    'down,offline,job-exclusive, busy': 'offl',
+    'UNKN': 'UNKN',
+}
+
+COLORS = {
+    'none'       :    "",
+    'default'    :    "\033[0m",
+    'bold'       :    "\033[1m",
+    'underline'  :    "\033[4m",
+    'blink'      :    "\033[5m",
+    'reverse'    :    "\033[7m",
+    'concealed'  :    "\033[8m",
+
+    'black'      :    "\033[30m",
+    'red'        :    "\033[31m",
+    'green'      :    "\033[32m",
+    'yellow'     :    "\033[33m",
+    'blue'       :    "\033[34m",
+    'magenta'    :    "\033[35m",
+    'cyan'       :    "\033[36m",
+    'white'      :    "\033[37m",
+
+    'on_black'   :    "\033[40m",
+    'on_red'     :    "\033[41m",
+    'on_green'   :    "\033[42m",
+    'on_yellow'  :    "\033[43m",
+    'on_blue'    :    "\033[44m",
+    'on_magenta' :    "\033[45m",
+    'on_cyan'    :    "\033[46m",
+    'on_white'   :    "\033[47m",
+
+    'beep'       :    "\007"
+}
+
+
+def out(s):
+    try:
+        sys.stdout.write(s)
+    except UnicodeEncodeError:
+        sys.stdout.write(s.encode('ascii', 'ignore').decode())
+
+
+def server_status():
+    nodes_stat = defaultdict(int)
+    aval_cores = defaultdict(int)
+    down_nodes = {}
+
+    status, output = getstatusoutput(PBS_HOME + "pbsnodes -aox")
+    if status != 0:
+        return None, None, None
+    
+    root = ET.fromstring(output)
+    for node in root:
+        name = node.find('name').text
+        queue = node.find('properties').text
+        if queue == 'manager':
+            continue
+
+        state = STATE[node.find('state').text]
+        ncpus = int(node.find('np').text)
+
+        jobs = node.find('jobs')
+        core = 0 if jobs is None else len(jobs.text.split(',')) 
+        
+        nodes_stat[state] += 1
+        if state == 'down' or state == 'offl':
+            down_nodes[name] = 1
+        else:
+            aval_cores[queue] += ncpus - core
+
+    return nodes_stat, aval_cores, down_nodes
+
+
+def main():
+    """Main func"""
+    queues = ['superfat', 'GPUfat', 'middle', 'high', 'dev', 'silver']
+    node_stat, aval_core, down_nodes = server_status()
+    if node_stat is None or aval_core is None or down_nodes is None:
+        out(COLORS['yellow'])
+        out('Warning: Cannot connect to PBS server')
+        out(COLORS['default'])
+        out('\n')
+        sys.exit()
+
+    _, user = getstatusoutput('whoami')
+    _, date = getstatusoutput('date')
+    js = os.environ['HOME'] + '/.down_nodes'
+    if os.path.exists(js):
+        with open(js, 'r') as f:
+            last_down = json.load(f)
+    else:
+        last_down = {}
+
+    back_nodes = []
+    die_nodes = []
+    for node_id in last_down:
+        if node_id not in down_nodes:
+            back_nodes.append(node_id)
+    
+    for node_id in down_nodes:
+        if node_id not in last_down:
+            die_nodes.append(node_id)
+
+    with open(js, 'w') as f:
+        json.dump(down_nodes, f)
+
+    out(COLORS['yellow'])
+    out('============================ Server Status ============================')
+    out(COLORS['default'])
+    out('\n')
+    out(COLORS['cyan'])
+    out('Nodes Status:    {0}/active, {1}/busy, {2}/down, {3}/offline'.format(node_stat['free'], node_stat['busy'] + node_stat['excl'], node_stat['down'], node_stat['offl']))
+    out(COLORS['default'])
+    out('\n')
+    out(COLORS['green'])
+    out('Available cores: ' + ', '.join(['{1}/{0}'.format(i, aval_core[i]) for i in queues[:5]]))
+    out(COLORS['default'])
+    out('\n')
+    out(COLORS['green'])
+    out('                 ' + ', '.join(['{1}/{0}'.format(i, aval_core[i]) for i in queues[5:]]))
+    out(COLORS['default'])
+    out('\n')
+
+    msg = ''
+    if len(back_nodes) > 0:
+        msg += '{0} back online; '.format('/'.join(sorted(back_nodes)))
+    if len(die_nodes) > 0:
+        msg += '{0} went down'.format('/'.join(sorted(die_nodes)))
+    if msg:
+        out(COLORS['yellow'])
+        out('=========================== Warning Message ===========================')
+        out(COLORS['default'])
+        out('\n')
+        out(COLORS['red'])
+        out(msg)
+        out(COLORS['default'])
+        out('\n')
+    
+    out(COLORS['yellow'])
+    out('=============== Login time: {0} =============='.format(date))
+    out(COLORS['default'])
+    out('\n')
+
+
+if __name__ == "__main__":
+    main()
