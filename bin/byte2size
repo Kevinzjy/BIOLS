@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+=head1 Program Description
+
+A small tool to convert bytes to size
+
+=head1 Contact & Version
+
+  Author: Zhang Jinyang, zhangjinyang15@mails.ucas.ac.cn
+  Version: 0.1,  Date: 2016-4-13
+
+=head1 Usage
+
+  perl byte2size.pl <byte_number>
+  options:
+  --verbose               output verbose information to screen
+  --help                  output help information to screen
+
+=cut
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Data::Dumper;
+
+my ($Verbose,$Help);
+GetOptions(
+	"verbose"=>\$Verbose,
+	"help"=>\$Help
+);
+die `pod2text $0` if ($Help or @ARGV == 0);
+
+my $byte = shift;
+die "Usage: perl byte2size.pl byte_number\n" unless ($byte =~ /^\d+$/);
+if ($byte < 1024){
+	print "$byte Byte\n";
+}elsif($byte < 1024**2){
+	printf("%.2f KB\n",$byte/1024);
+}elsif($byte < 1024**3){
+	printf("%.2f MB\n",$byte/(1024**2));
+}elsif($byte < 1024**4){
+	printf("%.2f GB\n",$byte/(1024**3));
+}elsif($byte < 1024**5){
+	printf("%.2f TB\n",$byte/(1024**4));
+}else{
+	printf("%.2f PB\n",$byte/(1024**5));
+}
+
+# ==================================================
+# Sub Routines
+# ==================================================
+
+# get local time
+# ==================================================
+sub get_time {
+	my ($sec,$min,$hour,$day,$mon,$year,$weekday,$yeardate,$savinglightday) = localtime();
+	$sec = "0$sec" if($sec < 10);
+	$min =  "0$min" if($min < 10);
+	$hour = "0$hour" if($hour < 10);
+	$day = "0$day" if($day < 10);
+	$mon ++;
+	$mon = "0$mon" if($mon < 10);
+	$year += 1900;
+	return "$year-$mon-$day $hour:$min:$sec";
+}

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+change_mac(){
+	# Prevent endless loop on error
+	if (( COUNT >= 10)); then exit 0; else COUNT=$(( COUNT + 1)); echo "Attempt: $COUNT"; fi
+	# Generate a new MAC address
+	MAC="$(/usr/bin/openssl rand -hex 6 | sed 's/\(..\)/\1/g; s/.$//')"
+	# change the mac address
+	/sbin/ifconfig "$1" hw ether "${MAC}"
+	# check whether successfully changed the mac address
+	if [ $? -ne 0 ]; then change_mac; fi
+	# Log the change
+	echo "Interface: $1 | MAC: ${MAC}"
+}
+
+# change_mac 'enp4s0'

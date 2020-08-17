@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 try:
     from commands import  getstatusoutput
@@ -40,6 +41,16 @@ class GTFParser(object):
             key, value = attr_values[0], attr_values[1:]
             field[key] = ' '.join(value).strip('"')
         return field
+
+    def __repr__(self):
+        return '{} {}:{}-{}:{}'.format(self.type, self.contig, self.start, self.end, self.strand)
+
+    def seq(self, fasta):
+        tmp_seq = fasta.seq(self.contig, self.start-1, self.end)
+        if self.strand == '+':
+            return tmp_seq
+        else:
+            return revcomp(tmp_seq)
 
 
 class Faidx(object):

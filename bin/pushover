@@ -34,10 +34,11 @@ def pushover(title, msg):
 def main(title, msg):
     """Push message to Pushover service, please provide token and user in JSON format at $HOME/.pushover.json"""
     hostname = platform.node()
-    if hostname == 'node77':
-        pushover(title, msg)
-    else:
-        os.system('ssh node77 "pushover -t \'{}\' \'{}\'"'.format(title, msg))
+    #if hostname == 'node77':
+    #    pushover(title, msg)
+    #else:
+    #    os.system('ssh node77 "pushover -t \'{}\' \'{}\'"'.format(title, msg))
+    pushover(title, msg)
 
 
 if __name__ == '__main__':
