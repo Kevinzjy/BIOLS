@@ -198,6 +198,15 @@ then
 	exit 1
 fi
 
+if test -s $PBSNODES
+then
+	:
+else
+	echo ERROR: Can not find pbsnodes
+	usage
+	exit 1
+fi
+
 if test -s $NETLOADFILE
 then
 	# NETLOADFILE file age in seconds:
@@ -213,8 +222,8 @@ then
 		exit 0
 	fi
 else
-	echo Netload file $NETLOADFILE does not exist: Cannot print netload until next time.
-	echo You have to run this command again after some time in order to calculate current network load.
+	# echo Netload file $NETLOADFILE does not exist: Cannot print netload until next time.
+	# echo You have to run this command again after some time in order to calculate current network load.
 	netloadprint=0
 fi
 
