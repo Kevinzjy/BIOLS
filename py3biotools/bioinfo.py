@@ -53,6 +53,20 @@ class GTFParser(object):
             return revcomp(tmp_seq)
 
 
+class GFFParser(GTFParser):
+    @property
+    def attr(self):
+        """
+        Parsing attribute column in gtf file
+        """
+        import re
+        field = {}
+        for attr_values in [re.split(r'=', i.strip()) for i in self.attr_string.split(';')]:
+            key, value = attr_values[0], attr_values[1:]
+            field[key] = ' '.join(value).strip('"')
+        return field
+
+
 class Faidx(object):
     """
     API for unify pysam::Fastafile and mappy2::Aligner
@@ -96,6 +110,23 @@ class Fasta(object):
         if contig not in self.genome:
             return None
         return self.genome[contig][start:end]
+
+
+def load_fasta(fname):
+    sequences = {}
+    seq_id = None
+    seq = None
+    with open(fname, 'r') as f:
+        for line in f:
+            if line.startswith('>'):
+                if seq_id is not None:
+                    sequences[seq_id] = seq
+                seq_id = line.rstrip().lstrip('>')
+                seq = ''
+            else:
+                seq += line.rstrip()
+        sequences[seq_id] = seq
+    return sequences
 
 
 def index_annotation(gtf):
