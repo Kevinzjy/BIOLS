@@ -1,0 +1,40 @@
+#!/bin/sh
+# Name: pbsjobs
+# -------------
+# List all jobs on a specific node
+# Usage: pbsjobs hostname
+# Author: zhangjinyang@biols.ac.cn
+# Version: 2.15
+# Data: 2020-10-09 09:57:22
+
+VERSION="pbsjobs version 2.15.  Date: 09 Oct 2020"
+
+# Locations of command and directories
+#PBSNODES=/usr/local/bin/pbsnodes
+#QSTAT=/usr/local/bin/qstat
+PBSNODES=/usr/local/torque-4.2.9/bin/pbsnodes
+QSTAT=/usr/local/torque-4.2.9/bin/qstat
+AWK=/bin/awk
+
+NODE=$1
+$PBSNODES -a ${NODE} | ${AWK} '
+NF==1 { 
+    getline             # Get the next input line
+    while (NF >= 3) {       # Read a number of non-blank lines
+        if ($1 == "jobs") {
+            split($3, tjobs, ",")
+            for (i in tjobs) {
+                split(tjobs[i], jobinfo, "/")
+                split(jobinfo[2], d, ".")
+                tjobid = jobinfo[2]
+                jobres[tjobid] = 1
+            }
+        }
+        getline
+    }
+    for (tjobid in jobres) {
+        printf ("%s\n", tjobid)
+    }
+    delete jobres
+}'
+
