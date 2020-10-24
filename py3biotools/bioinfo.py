@@ -114,6 +114,7 @@ class Fasta(object):
 
 def load_fasta(fname, is_gz=False):
     import gzip
+    from .utils import to_str
     sequences = {}
     seq_id = None
     seq = None
