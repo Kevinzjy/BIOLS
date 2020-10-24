@@ -3,4 +3,5 @@
 
 FASTQ=$1
 FASTA=$2
-gunzip -c ${FASTQ} | awk '{a[NR]=$0; if(a[NR-1]~/^@/) {print a[NR-1]"\n"a[NR]}}' | sed 's/^@/>/g' | gzip  > $FASTA
+
+gunzip -c ${FASTQ} | sed -n '1~4s/^@/>/p;2~4p' > ${FASTA}
