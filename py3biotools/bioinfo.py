@@ -114,12 +114,13 @@ class Fasta(object):
 
 def load_fasta(fname, is_gz=False):
     import gzip
+    from .utils import to_str
     sequences = {}
     seq_id = None
-    seq = None
+    seq = ''
     f = gzip.open(fname, 'rb') if is_gz else open(fname, 'r')
     for line in f:
-        if line.startswith('>'):
+        if to_str(line).startswith('>'):
             if seq_id is not None:
                 sequences[seq_id] = seq
             seq_id = to_str(line).rstrip().lstrip('>')
@@ -135,7 +136,7 @@ def index_annotation(gtf):
     """
     Generate binned index for element in gtf
     """
-    from utils import tree
+    from .utils import tree
 
     gtf_index = defaultdict(dict)
     intron_index = defaultdict(dict)
