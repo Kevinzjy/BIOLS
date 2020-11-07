@@ -608,7 +608,7 @@ NF==1 { node=$1             # 1st line is nodename
         } else
             printf ("    -  ")
         if (msg[node] != "") {
-            printf ("%s\n", msg[node])
+            printf (" %s\n", msg[node])
         } else {
             printf ("%s\n", substr(jobiduserlist[node], 1, length(jobiduserlist[node])-1))
         }
