@@ -10,10 +10,10 @@
 VERSION="pbsjobs version 2.15.  Date: 09 Oct 2020"
 
 # Locations of command and directories
-#PBSNODES=/usr/local/bin/pbsnodes
-#QSTAT=/usr/local/bin/qstat
-PBSNODES=/usr/local/torque-4.2.9/bin/pbsnodes
-QSTAT=/usr/local/torque-4.2.9/bin/qstat
+PBSNODES=/usr/local/bin/pbsnodes
+QSTAT=/usr/local/bin/qstat
+#PBSNODES=/usr/local/torque-4.2.9/bin/pbsnodes
+#QSTAT=/usr/local/torque-4.2.9/bin/qstat
 AWK=/bin/awk
 
 NODE=$1

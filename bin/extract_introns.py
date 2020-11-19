@@ -114,7 +114,7 @@ def main(genome, anno, bed, cpus, fasta):
     LOGGER.info('Running {} to extract all intron position and sequence'.format(Path(__file__)))
     if genome is None or anno is None:
         LOGGER.error('Wrong argument specified, please run with --help to see further instructions.')
-    if bed is None and fasta is None:
+    if bed is None or fasta is None:
         LOGGER.error('No output specified, please run with --help to see further instructions.')
 
     # Load genome
@@ -146,7 +146,7 @@ def main(genome, anno, bed, cpus, fasta):
     prog.update(100)
 
     # Merge introns of protein coding genes
-    LOGGER.info('Merge intron of all protein coding genes')
+    LOGGER.info('Merge introns of all protein coding genes')
     all_annotated_introns = []
     for gene_id in gene_intron:
         if gene_intron[gene_id].df.shape[0] == 0:
@@ -177,7 +177,9 @@ def main(genome, anno, bed, cpus, fasta):
                 for idx, row in all_annotated_introns.iterrows():
                     intron_id = '{}:{}-{}'.format(row['Chromosome'], row['Start']+1, row['End']-1)
                     seq = get_intron_sequence(faidx, row)
-                    out.write('>{}\n{}\n'.format(intron_id, seq))
+                    if len(seq) >= 10000:
+                        continue
+                    out.write('>{}\n{}\n'.format(intron_id, seq * 2))
 
 
 if __name__ == '__main__':

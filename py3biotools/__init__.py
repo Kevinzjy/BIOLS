@@ -17,8 +17,8 @@ plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['font.family'] = "sans-serif"
 plt.rcParams['font.sans-serif'] = "Arial"
 
-print("""Imported modules for python bioinformatics analysis
+sys.stderr.write("""Imported modules for python bioinformatics analysis
 Author: Jinyang Zhang
 Email: zhangjinyang@biols.ac.cn
-Version: 1.0""")
-print(sys.version)
+Version: 1.0\n""")
+sys.stderr.write(sys.version + '\n')

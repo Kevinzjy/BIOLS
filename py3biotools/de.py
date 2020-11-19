@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def calcNormFactors(df):
     f75 = df.apply(lambda x: np.quantile(x, .75), axis=0)
     ref_idx = abs(f75-np.mean(f75)).idxmin()

@@ -112,20 +112,23 @@ class Fasta(object):
         return self.genome[contig][start:end]
 
 
-def load_fasta(fname):
+def load_fasta(fname, is_gz=False):
+    import gzip
+    from .utils import to_str
     sequences = {}
     seq_id = None
-    seq = None
-    with open(fname, 'r') as f:
-        for line in f:
-            if line.startswith('>'):
-                if seq_id is not None:
-                    sequences[seq_id] = seq
-                seq_id = line.rstrip().lstrip('>')
-                seq = ''
-            else:
-                seq += line.rstrip()
-        sequences[seq_id] = seq
+    seq = ''
+    f = gzip.open(fname, 'rb') if is_gz else open(fname, 'r')
+    for line in f:
+        if to_str(line).startswith('>'):
+            if seq_id is not None:
+                sequences[seq_id] = seq
+            seq_id = to_str(line).rstrip().lstrip('>')
+            seq = ''
+        else:
+            seq += to_str(line).rstrip()
+    sequences[seq_id] = seq
+    f.close()
     return sequences
 
 
@@ -133,7 +136,7 @@ def index_annotation(gtf):
     """
     Generate binned index for element in gtf
     """
-    from utils import tree
+    from .utils import tree
 
     gtf_index = defaultdict(dict)
     intron_index = defaultdict(dict)
