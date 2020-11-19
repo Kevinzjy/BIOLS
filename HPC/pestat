@@ -59,7 +59,7 @@ then
 fi
 
 # Minimum age of NETLOADFILE (seconds): If less than this value the netload information may not be reliable:
-NETLOADFILE_MINAGE=10
+NETLOADFILE_MINAGE=1
 
 # Command usage:
 function usage()
@@ -222,12 +222,12 @@ then
     netloadage=$(($now-$filetime))
     # Print age (strip extraneous output from "stat")
     # echo Netload file $NETLOADFILE age: $netloadage seconds, dated `stat -c "%y" $NETLOADFILE | awk -F. '{print $1}'`
-    # if test $netloadage -lt $NETLOADFILE_MINAGE
-    # then
+    if test $netloadage -lt $NETLOADFILE_MINAGE
+    then
         # echo Netload file age should be at least $NETLOADFILE_MINAGE seconds, please try again...
-        # echo Interval between operations should be at least $NETLOADFILE_MINAGE second, please try again...
-        # exit 0
-    # fi
+        echo Interval between operations should be at least $NETLOADFILE_MINAGE second, please try again...
+        exit 0
+    fi
 else
     # echo Netload file $NETLOADFILE does not exist: Cannot print netload until next time.
     # echo You have to run this command again after some time in order to calculate current network load.
