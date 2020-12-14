@@ -82,7 +82,8 @@ where:
 EOF
 }
 
-NODEBLACKLIST="node78"
+NODEBLACKLIST="node78:node161:node162:node163:node164:node165:node166:node167:node168:node169:node170"
+QUEUEBLACKLIST="high"
 
 #
 # Netload information from Torque pbs_mom will be printed
@@ -254,7 +255,7 @@ fi
 #
 
 $PBSNODES -a | $AWK -v listflagged=$listflagged -v listdownnodes=$listdownnodes \
-    -v listalljobs=$listalljobs -v NODEBLACKLIST=$NODEBLACKLIST \
+    -v listalljobs=$listalljobs -v NODEBLACKLIST=$NODEBLACKLIST -v QUEUEBLACKLIST=$QUEUEBLACKLIST \
     -v colors=$colors -v username=$username -v groupname=$groupname -v minjobs=$minjobs \
     -v NODENAMEFORMAT=$NODENAMEFORMAT \
     -v QSTAT=$QSTAT -v queue=$queue -v tstate=$tstate \
@@ -348,6 +349,16 @@ BEGIN {
             split($0,b,":")         # Split password line into fields
             gidname[b[1]] = group[b[4]]   # Group name of this GID (numeric group id)
         }
+    }
+
+    nodenum = split(NODEBLACKLIST, nodelist, ":")
+    for(i = 1; i <= nodenum; ++i) {
+      BLACKNODE[nodelist[i]] = nodelist[i]
+    }
+
+    queuenum = split(QUEUEBLACKLIST, queuelist, ":")
+    for (i = 1; i <= queuenum; ++i) {
+      BLACKQUEUE[queuelist[i]] = queuelist[i]
     }
 
     # Print a header line
@@ -495,7 +506,8 @@ NF==1 { node=$1             # 1st line is nodename
     if (tstate != "" && state[node] != tstate) next
 
     # If this node in the blacklist ?
-    if (node == NODEBLACKLIST) next
+    if (node in BLACKNODE) next
+    if (properties[nodes] in BLACKQUEUE) next
 
     # Print out values that we are interested in.  Flag unexpected values with a "*".
 
