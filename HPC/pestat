@@ -40,6 +40,8 @@ VERSION="pestat version 2.15.  Date: 17 Aug 2020"
 # Locations of command and directories
 PBSNODES=pbsnodes
 QSTAT=qstat
+#PBSNODES=/usr/local/bin/pbsnodes
+#QSTAT=/usr/local/bin/qstat
 #PBSNODES=/usr/local/torque-4.2.9/bin/pbsnodes
 #QSTAT=/usr/local/torque-4.2.9/bin/qstat
 AWK=/bin/awk
@@ -80,7 +82,8 @@ where:
 EOF
 }
 
-NODEBLACKLIST="node78"
+NODEBLACKLIST="node78:node161:node162:node163:node164:node165:node166:node167:node168:node169:node170"
+QUEUEBLACKLIST="high"
 
 #
 # Netload information from Torque pbs_mom will be printed
@@ -203,6 +206,7 @@ then
     exit 1
 fi
 
+<<<<<<< HEAD
 # if test -s $PBSNODES
 # then
 #     :
@@ -211,6 +215,16 @@ fi
 #     usage
 #     exit 1
 # fi
+=======
+#if test -s $PBSNODES
+#then
+#    :
+#else
+#    echo ERROR: Can not find pbsnodes
+#    usage
+#    exit 1
+#fi
+>>>>>>> e2e22e84d9e1eeaffa33eb911a140f2db2b69148
 
 if test -s $NETLOADFILE
 then
@@ -252,7 +266,7 @@ fi
 #
 
 $PBSNODES -a | $AWK -v listflagged=$listflagged -v listdownnodes=$listdownnodes \
-    -v listalljobs=$listalljobs -v NODEBLACKLIST=$NODEBLACKLIST \
+    -v listalljobs=$listalljobs -v NODEBLACKLIST=$NODEBLACKLIST -v QUEUEBLACKLIST=$QUEUEBLACKLIST \
     -v colors=$colors -v username=$username -v groupname=$groupname -v minjobs=$minjobs \
     -v NODENAMEFORMAT=$NODENAMEFORMAT \
     -v QSTAT=$QSTAT -v queue=$queue -v tstate=$tstate \
@@ -348,9 +362,19 @@ BEGIN {
         }
     }
 
+    nodenum = split(NODEBLACKLIST, nodelist, ":")
+    for(i = 1; i <= nodenum; ++i) {
+      BLACKNODE[nodelist[i]] = nodelist[i]
+    }
+
+    queuenum = split(QUEUEBLACKLIST, queuelist, ":")
+    for (i = 1; i <= queuenum; ++i) {
+      BLACKQUEUE[queuelist[i]] = queuelist[i]
+    }
+
     # Print a header line
     printf (NODENAMEFORMAT, YELLOW, "Node")
-    printf (" %sstate   load%     resi      pmem      mem  ncpu  proc                         queue    usrs tasks NetMbit jobids/users %s\n", YELLOW, NORMAL)
+    printf (" %sstate    load%     resi      pmem      mem  ncpu  proc                         queue    usrs tasks NetMbit jobids/users %s\n", YELLOW, NORMAL)
 }
 #
 # Parse the output of pbsnodes
@@ -493,7 +517,8 @@ NF==1 { node=$1             # 1st line is nodename
     if (tstate != "" && state[node] != tstate) next
 
     # If this node in the blacklist ?
-    if (node == NODEBLACKLIST) next
+    if (node in BLACKNODE) next
+    if (properties[nodes] in BLACKQUEUE) next
 
     # Print out values that we are interested in.  Flag unexpected values with a "*".
 
@@ -593,7 +618,7 @@ NF==1 { node=$1             # 1st line is nodename
     if (!listflagged || listnode > 0) {
         printf (NODENAMEFORMAT, NORMAL, node)
         printf (" %s%s%1s%s ", statecolor, state[node], stateflag, NORMAL)
-        printf (" %s%5.2f%1s%s", loadcolor, loadave[node], loadflag, NORMAL)
+        printf (" %s%6.2f%1s%s", loadcolor, loadave[node], loadflag, NORMAL)
         printf (" %s%8.2f%1s%s", statecolor, resi/1024, resiflag, NORMAL)
         printf (" %s%8.2f%s", statecolor, physmem[node]/1024/1024, NORMAL)
         printf (" %s%8.2f%s", statecolor, aval/1024, NORMAL)
