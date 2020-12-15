@@ -24,6 +24,13 @@ def setAlpha(ax,a):
 
 
 def customized_cmap(colors, intervals, N=256):
+    """Generate customized cmap
+    Generate continuous cmap from given color intervals and length
+    :param colors: List of Matplotlib color specifications, or an equivalent Nx3 or Nx4 floating point array (N rgb or rgba values).
+    :param intervals: List of lengths between each pair of adjacent colors.
+    :param N: Number of entries in the map.
+
+    """
     import numpy as np
     from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
