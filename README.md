@@ -11,7 +11,8 @@ import py3biotools
 
 # Bioinformatic Tools
 - bin/FastqToFasta : Convert FastQ to FastA format
-- bin/fastcount    : count total base and N50 of input fasta/fastq
+- bin/fastcount    : count total base and N50 of input fasta/fastq, from (https://github.com/rrwick/MinION-desktop)
+- bin/seqfilter    : filtering of fasta and fastq files based on sequence IDs and sequence length (https://github.com/clwgg/seqfilter)
 
 # Userful linux Tools:
 - bin/FindHulk     : Find large space-consuming files in directory
