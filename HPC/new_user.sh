@@ -3,5 +3,5 @@ new_user="user_id"
 new_home="user_home"
 new_group="user_group"
 
-pdsh -g compute_nodes -l root "useradd -g ${new_group} -u ${new_uid} -d ${new_home} -p passwd ${new_user}"
+pdsh -g compute_nodes -l root "useradd -g ${new_group} -u ${new_uid} -d ${new_home} ${new_user}"
 

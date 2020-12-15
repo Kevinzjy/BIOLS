@@ -38,8 +38,8 @@
 VERSION="pestat version 2.15.  Date: 17 Aug 2020"
 
 # Locations of command and directories
-PBSNODES=/usr/local/bin/pbsnodes
-QSTAT=/usr/local/bin/qstat
+PBSNODES=pbsnodes
+QSTAT=qstat
 #PBSNODES=/usr/local/torque-4.2.9/bin/pbsnodes
 #QSTAT=/usr/local/torque-4.2.9/bin/qstat
 AWK=/bin/awk
@@ -57,7 +57,7 @@ then
 fi
 
 # Minimum age of NETLOADFILE (seconds): If less than this value the netload information may not be reliable:
-NETLOADFILE_MINAGE=10
+NETLOADFILE_MINAGE=1
 
 # Command usage:
 function usage()
@@ -203,14 +203,14 @@ then
     exit 1
 fi
 
-if test -s $PBSNODES
-then
-    :
-else
-    echo ERROR: Can not find pbsnodes
-    usage
-    exit 1
-fi
+# if test -s $PBSNODES
+# then
+#     :
+# else
+#     echo ERROR: Can not find pbsnodes
+#     usage
+#     exit 1
+# fi
 
 if test -s $NETLOADFILE
 then

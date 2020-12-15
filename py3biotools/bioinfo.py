@@ -206,3 +206,34 @@ def get_n50(sequence_lengths):
         if bases_so_far >= target_bases:
             return sequence_length
     return 0
+
+
+def get_exons(hit):
+    """
+    Get exons from pysam alignment results
+    """
+    r_start, r_end = hit.reference_start, hit.reference_start
+    q_start, q_end = hit.query_alignment_start, hit.query_alignment_start
+    r_block = []
+    for operation, length in hit.cigar:
+        if operation == 0:
+            r_end += length
+            q_end += length
+        elif operation == 1:
+            q_end += length
+        elif operation == 2:
+            r_end += length
+        elif operation == 3:
+            r_block.append([r_start, r_end, q_start, q_end])
+            r_start = r_end + length
+            r_end = r_start
+            q_start = q_end
+        elif operation == 4:
+            pass
+
+    if r_end > r_start:
+        r_block.append([r_start, r_end, q_start, q_end])
+    else:
+        pass
+
+    return r_block
