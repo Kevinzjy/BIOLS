@@ -182,3 +182,23 @@ def sorted_iters(iters, key, reverse=False):
     x = sorted(iters, key=itemgetter(key), reverse=reverse)
     return [i for i in x if i[key] == x[0][key]]
 
+
+def download(url, outfile)
+    import requests
+    from contextlib import closing
+    from logger import ProgressBar
+
+    with closing(requests.get(url, stream=True)) as response, open(outfile, 'wb') as out:
+        chunk_size = 1024
+        try:
+            content_size = int(response.headers['content-length'])
+            sys.stderr.write('Downloading file to {}, total size: {}\n'.format(outfile, content_size))
+            prog = ProgressBar()
+            cnt = 0
+            for data in response.iter_content(chunk_size=chunk_size):
+                out.write(data)
+                cnt += len(data)
+                prog.update(100 * cnt / content_size)
+        except KeyError:
+            out.write(response.content)
+    return 1
