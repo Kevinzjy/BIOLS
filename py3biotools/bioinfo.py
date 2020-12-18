@@ -132,6 +132,23 @@ def load_fasta(fname, is_gz=False):
     return sequences
 
 
+def load_fastq(fname, is_gz=False):
+    import gzip
+    from py3biotools.utils import to_str
+    sequences = {}
+    seq_id = None
+    seq = ''
+    f = gzip.open(fname, 'rb') if is_gz else open(fname, 'r')
+    for line in f:
+        seq_id = to_str(line).rstrip().lstrip('@').split(' ')[0]
+        seq = to_str(f.readline()).rstrip()
+        sep = to_str(f.readline()).rstrip()
+        qual = to_str(f.readline()).rstrip()
+        sequences[seq_id] = (seq, qual)
+    f.close()
+    return sequences
+
+
 def index_annotation(gtf):
     """
     Generate binned index for element in gtf
