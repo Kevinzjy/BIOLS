@@ -183,10 +183,10 @@ def sorted_iters(iters, key, reverse=False):
     return [i for i in x if i[key] == x[0][key]]
 
 
-def download(url, outfile)
+def download(url, outfile):
     import requests
     from contextlib import closing
-    from logger import ProgressBar
+    from py3biotools.logger import ProgressBar
 
     with closing(requests.get(url, stream=True)) as response, open(outfile, 'wb') as out:
         chunk_size = 1024

@@ -1,10 +1,13 @@
 import os
 import sys
+import gzip
 import pandas as pd
 try:
     from commands import  getstatusoutput
 except ImportError:
     from subprocess import getstatusoutput
+
+from py3biotools.utils import to_str
 
 
 class StupidError(Exception): 
@@ -113,8 +116,6 @@ class Fasta(object):
 
 
 def load_fasta(fname, is_gz=False):
-    import gzip
-    from .utils import to_str
     sequences = {}
     seq_id = None
     seq = ''
@@ -132,9 +133,24 @@ def load_fasta(fname, is_gz=False):
     return sequences
 
 
+def yield_fasta(fname, is_gz=False):
+    sequences = {}
+    seq_id = None
+    seq = ''
+    f = gzip.open(fname, 'rb') if is_gz else open(fname, 'r')
+    for line in f:
+        if to_str(line).startswith('>'):
+            if seq_id is not None:
+                yield (seq_id, seq)
+            seq_id = to_str(line).rstrip().lstrip('>')
+            seq = ''
+        else:
+            seq += to_str(line).rstrip()
+    yield (seq_id, seq)
+    f.close()
+
+
 def load_fastq(fname, is_gz=False):
-    import gzip
-    from py3biotools.utils import to_str
     sequences = {}
     seq_id = None
     seq = ''
@@ -147,6 +163,17 @@ def load_fastq(fname, is_gz=False):
         sequences[seq_id] = (seq, qual)
     f.close()
     return sequences
+
+
+def yield_fastq(fname, is_gz=False):
+    f = gzip.open(fname, 'rb') if is_gz else open(fname, 'r')
+    for line in f:
+        read_id = to_str(line).rstrip().lstrip('@')
+        seq = to_str(f.readline()).rstrip()
+        sep = to_str(f.readline()).rstrip()
+        qual = to_str(f.readline()).rstrip()
+        yield (read_id, seq, sep, qual)
+    f.close()
 
 
 def index_annotation(gtf):
