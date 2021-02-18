@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+import os
+import sys
+import gzip
+import argparse
+import numpy as np
+from pathlib import Path
+from collections import Counter
+
+
+__version__ = '0.1.0'
+
+
+def get_n50(sequence_lengths):
+    """
+    Get n50 of sequence lengths
+    """
+    sequence_lengths = sorted(sequence_lengths, reverse=True)
+    total_bases = sum(sequence_lengths)
+    target_bases = total_bases * 0.5
+    bases_so_far = 0
+    for sequence_length in sequence_lengths:
+        bases_so_far += sequence_length
+        if bases_so_far >= target_bases:
+            return sequence_length
+    return 0
+
+
+def load_fastq(fname):
+    sequences = []
+    seq_id = None
+    seq = ''
+
+    if fname.suffix == '.gz':
+        with gzip.open(fname, 'rb') as f:
+            for line in f:
+                # seq_id = line.rstrip().lstrip(b'@').split(b' ')[0]
+                seq = f.readline().rstrip()
+                f.readline()
+                f.readline()
+                # sep = f.readline().rstrip()
+                # qual = f.readline().rstrip()
+                sequences.append(seq)
+    else:
+        with open(fname, 'r') as f:
+            for line in f:
+                # seq_id = line.rstrip().lstrip('@').split(' ')[0]
+                seq = f.readline().rstrip()
+                f.readline()
+                f.readline()
+                # sep = f.readline().rstrip()
+                # qual = f.readline().rstrip()
+                sequences.append(seq)
+
+    total_cnt = len(sequences)
+
+    return sequences
+
+
+def detect_polyA(seq, k, maxA):
+    # k = 10
+    # maxA = 8
+    for i in np.arange(len(seq)-k):
+        counter = Counter(seq[i:i+k])
+        if counter['A'] >= maxA or counter['T'] >= maxA:
+            return 1
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        print('Usage: FastqSummary s1.fq s2.fq')
+        sys.exit()
+
+    trim_len = 30
+    length_threshold = 300
+
+    # TOTAL_READS = defaultdict(int)
+    # POLYA_READS = defaultdict(list)
+    # for barcode in FASTQ:
+    #     cnt = 0
+    #     for read_id, fq in FASTQ[barcode].items():
+    #         seq, qual = fq
+    # #         if len(seq) < length_threshold:
+    # #             continue
+    #         TOTAL_READS[barcode] += 1
+    #         if detect_polyA(seq[:trim_len], 10, 8) or detect_polyA(seq[-trim_len:], 10, 8):
+    #             POLYA_READS[barcode].append(read_id)
+
+    print('FileName,Reads,Bases,Median,N50,L300,polyA')
+    for x in args:
+        f = Path(x)
+
+        seq = load_fastq(f)
+        seq_len = [len(i) for i in seq]
+
+        total_cnt = len(seq)
+        total_base = np.sum(seq_len)
+        n50 = get_n50(seq_len)
+        mean = int(total_base / total_cnt)
+
+        pA_num = 0
+        filtered_num = 0
+        for i, j in zip(seq, seq_len):
+            if j < length_threshold:
+                continue
+            filtered_num += 1
+            if detect_polyA(i[:trim_len], 10, 8) or detect_polyA(i[-trim_len:], 10, 8):
+                pA_num += 1
+
+        print(','.join([str(i) for i in [f.name, total_cnt, total_base, mean, n50, filtered_num, pA_num]]))
+
+
+if __name__ == '__main__':
+    main()
+
+
+# # Parameters
+# trim_len = 50
+# length_threshold = 300
+
+# TOTAL_READS = defaultdict(int)
+# POLYA_READS = defaultdict(list)
+# for barcode in FASTQ:
+#     cnt = 0
+#     for read_id, fq in FASTQ[barcode].items():
+#         seq, qual = fq
+# #         if len(seq) < length_threshold:
+# #             continue
+#         TOTAL_READS[barcode] += 1
+#         if detect_polyA(seq[:trim_len], 10, 8) or detect_polyA(seq[-trim_len:], 10, 8):
+#             POLYA_READS[barcode].append(read_id)
