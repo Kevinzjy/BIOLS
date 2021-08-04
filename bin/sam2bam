@@ -1,0 +1,6 @@
+#!/bin/bash
+SAM=$1
+PREFIX=$(echo $SAM | perl -pe 's/(.*)\..*$/$1/')
+samtools sort ${SAM} -@ 16 -o ${PREFIX}.sorted.bam
+samtools index ${PREFIX}.sorted.bam
+

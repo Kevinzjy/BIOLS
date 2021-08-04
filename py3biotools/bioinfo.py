@@ -281,3 +281,18 @@ def get_exons(hit):
         pass
 
     return r_block
+
+
+def load_mm_paf(fname):
+    """
+    Load minimap2 paf-format output
+    """
+    paf_col = ["qname", "qlen", "qstart", "qend", "strand", "rname", "rlen", "rstart", "rend", "mlen", "blen", "qual"]
+    paf_data = []
+    with open(fname, 'r') as f:
+        for line in f:
+            content = line.rstrip().split("\t")
+            paf_data.append(content[:len(paf_col)])
+    paf_data = pd.DataFrame(paf_data, columns = paf_col)
+    paf_data = paf_data.set_index('qname')
+    return paf_data

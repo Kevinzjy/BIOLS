@@ -2,4 +2,7 @@ scipy
 numpy
 pandas
 seaborn
-
+scikit-learn
+pandarallel
+UpSetPlot
+mappy
