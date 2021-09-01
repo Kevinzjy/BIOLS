@@ -2,7 +2,7 @@ class WeightedRandomizer:
     def __init__ (self, weights):
         self.__max = .0
         self.__weights = []
-        for value, weight in weights.items ():
+        for value, weight in weights.items():
             self.__max += weight
             self.__weights.append ( (self.__max, value) )
 

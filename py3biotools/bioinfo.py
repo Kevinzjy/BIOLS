@@ -283,7 +283,7 @@ def get_exons(hit):
     return r_block
 
 
-def load_mm_paf(fname):
+def load_mm_paf(fname, is_cigar=False):
     """
     Load minimap2 paf-format output
     """
@@ -292,7 +292,32 @@ def load_mm_paf(fname):
     with open(fname, 'r') as f:
         for line in f:
             content = line.rstrip().split("\t")
-            paf_data.append(content[:len(paf_col)])
-    paf_data = pd.DataFrame(paf_data, columns = paf_col)
+            if is_cigar:
+                paf_data.append(content[:len(paf_col)] + [content[-1].split(":")[-1], ])
+            else:
+                paf_data.append(content[:len(paf_col)])
+    
+    if is_cigar:
+        paf_data = pd.DataFrame(paf_data, columns = paf_col + ['CIGAR', ])
+    else:
+        paf_data = pd.DataFrame(paf_data, columns = paf_col)
     paf_data = paf_data.set_index('qname')
     return paf_data
+
+
+def iter_mm_paf(paf_file, is_cigar=False):
+    with open(paf_file, 'r') as f:
+        last_id, last_len = None, None
+        hits = []
+        for line in f:
+            content = line.rstrip().split('\t')
+            qname, rname = content[0], content[5] 
+            qlen, rlen, rstart, rend = int(content[1]), int(content[6]), int(content[7]), int(content[8])
+            cigar = content[-1].split(":")[-1] if is_cigar else None
+            if qname != last_id:
+                if last_id is not None:
+                    yield last_id, last_len, hits
+                last_id, last_len = qname, qlen
+                hits = []
+            hits.append([rname, rstart, rend, cigar])
+        yield last_id, last_len, hits

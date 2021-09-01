@@ -202,3 +202,20 @@ def download(url, outfile):
         except KeyError:
             out.write(response.content)
     return 1
+
+
+def merge_intervals(blocks):
+    from operator import itemgetter
+    tmp = sorted(blocks, key=itemgetter(0, 1))
+    merged = []
+    last_st, last_en = tmp[0][0], tmp[0][1]
+    for x in tmp[1:]:
+        st, en = x[0], x[1]
+        if st <= last_en + 1:
+            last_en = max(en, last_en)
+            last_st = min(st, last_st)
+        else:
+            merged.append([last_st, last_en])
+            last_st, last_en = st, en
+    merged.append([last_st, last_en])
+    return merged

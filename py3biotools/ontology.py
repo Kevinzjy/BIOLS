@@ -77,7 +77,7 @@ def enrichR(gene_list, input_libraries=None):
     
     user_id = data['userListId']
     if input_libraries is None:
-        enrichr_libraries = ['GO_Biological_Process_2018', 'GO_Cellular_Component_2018', 'GO_Molecular_Function_2018']
+        enrichr_libraries = ['GO_Biological_Process_2021', 'GO_Cellular_Component_2021', 'GO_Molecular_Function_2021']
     else:
         enrichr_libraries = input_libraries
 
