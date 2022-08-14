@@ -401,6 +401,7 @@ NF==1 { node=$1             # 1st line is nodename
         else if ($1 == "ntype")     ntype[node] = $3
         else if ($1 == "jobs") {
             split($3, tjobs, ",")
+            tmp_ppn = 0
             for (i in tjobs) {
                 split(tjobs[i], jobinfo, "/")
                 split(jobinfo[1], pids, "-")
@@ -409,11 +410,15 @@ NF==1 { node=$1             # 1st line is nodename
                 } else {
                     ppn = 1
                 }
-            
-                split(jobinfo[2], d, ".")
-                jobid = d[1]
-                tjobid = jobid
-                jobres[tjobid] += ppn
+                if (2 in jobinfo) {
+                    split(jobinfo[2], d, ".")
+                    jobid = d[1]
+                    tjobid = jobid
+                    jobres[tjobid] += ppn + tmp_ppn
+                    tmp_ppn = 0
+                } else {
+                    tmp_ppn += ppn
+                }
                 allocated += ppn
             }
 
