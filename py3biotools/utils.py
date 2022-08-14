@@ -7,12 +7,12 @@ import time
 
 def ranking(ranks, names, order=1):
     """Ranking a list using another list as key
-    
+
     Paramters
     ---------
     ranks : list,
         list of keys for ranking
-    
+
     names : list,
         list of labels corresponding to each key in ranks
 
@@ -219,3 +219,16 @@ def merge_intervals(blocks):
             last_st, last_en = st, en
     merged.append([last_st, last_en])
     return merged
+
+
+def cluster_peaks(x, gap=5):
+    if len(x) == 0:
+        return []
+    x_sorted = sorted(x)
+    clustered = [[x_sorted[0], x_sorted[0]], ]
+    for i in x_sorted[1:]:
+        if i-clustered[-1][1] > gap:
+            clustered.append([i,i])
+        else:
+            clustered[-1][1] = i
+    return clustered

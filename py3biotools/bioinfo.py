@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import gzip
 import pandas as pd
 try:
@@ -18,6 +19,10 @@ class StupidError(Exception):
     # __str__ is to print() the value 
     def __str__(self): 
         return(repr(self.value)) 
+
+
+Attr_tscp_id = re.compile(r'transcript_id "(\S+)";')
+Attr_gene_id = re.compile(r'gene_id "(\S+)";')
 
 
 class GTFParser(object):
@@ -44,6 +49,16 @@ class GTFParser(object):
             key, value = attr_values[0], attr_values[1:]
             field[key] = ' '.join(value).strip('"')
         return field
+
+    @property
+    def transcript_id(self):
+        match = re.findall(Attr_tscp_id, self.attr_string)
+        return match[0] if match else None
+
+    @property
+    def gene_id(self):
+        match = re.findall(Attr_gene_id, self.attr_string)
+        return match[0] if match else None
 
     def __repr__(self):
         return '{} {}:{}-{}:{}'.format(self.type, self.contig, self.start, self.end, self.strand)
@@ -124,7 +139,7 @@ def load_fasta(fname, is_gz=False):
         if to_str(line).startswith('>'):
             if seq_id is not None:
                 sequences[seq_id] = seq
-            seq_id = to_str(line).rstrip().lstrip('>')
+            seq_id = to_str(line).rstrip().split()[0].lstrip('>')
             seq = ''
         else:
             seq += to_str(line).rstrip()
@@ -174,6 +189,16 @@ def yield_fastq(fname, is_gz=False):
         qual = to_str(f.readline()).rstrip()
         yield (read_id, seq, sep, qual)
     f.close()
+
+
+def yield_gtf(gtf_file):
+    with open(gtf_file, 'r') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            content = line.rstrip().split('\t')
+            parser = GTFParser(content)
+            yield parser
 
 
 def index_annotation(gtf):
@@ -251,6 +276,32 @@ def get_n50(sequence_lengths):
             return sequence_length
     return 0
 
+def get_mm_exons(hit):
+    """
+    Get blocks of aligned segments
+    :param hit:
+    :return:
+    """
+    r_start = hit.r_st
+    r_end = hit.r_st
+    r_block = []
+    for length, operation in hit.cigar:
+        if operation == 0:
+            r_end += length
+        elif operation == 1:
+            pass
+        elif operation == 2:
+            r_end += length
+        elif operation == 3:
+            r_block.append([r_start, r_end, r_end - r_start + 1])
+            r_start = r_end + length
+            r_end = r_start
+        elif operation == 4:
+            pass
+    if r_end > r_start:
+        r_block.append([r_start, r_end, r_end - r_start + 1])
+    return r_block
+
 
 def get_exons(hit):
     """
@@ -258,6 +309,7 @@ def get_exons(hit):
     """
     r_start, r_end = hit.reference_start, hit.reference_start
     q_start, q_end = hit.query_alignment_start, hit.query_alignment_start
+
     r_block = []
     for operation, length in hit.cigar:
         if operation == 0:
@@ -321,3 +373,39 @@ def iter_mm_paf(paf_file, is_cigar=False):
                 hits = []
             hits.append([rname, rstart, rend, cigar])
         yield last_id, last_len, hits
+
+
+def load_idr_bed(infile, as_pyranges=False):
+    import pyranges as pr
+    idr_header = [
+        'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'signalValue', 'p-value', 'q-value', 'summit', 'localIDR', 'globalIDR', 
+        'rep1_chromStart', 'rep1_chromEnd', 'rep1_signalValue', 'rep1_summit',
+        'rep2_chromStart', 'rep2_chromEnd', 'rep2_signalValue', 'rep2_summit',
+    ]
+    df = pd.read_csv(infile, sep="\t", header=None)
+    if df.shape[0] <= 20:
+        return None
+
+    df.columns = idr_header
+    df['IDR_score'] = 2 ** (df['score'] / -125)
+
+    if as_pyranges:
+        peaks = pr.PyRanges(df.rename({"chrom": "Chromosome", "chromStart": "Start", "chromEnd": "End", "strand": "Strand"}, axis=1))
+        return peaks
+
+    return df
+
+
+def load_narrowPeak(infile, as_pyranges=False):
+    import pyranges as pr
+    narrowPeak_header = [
+        'chrom', 'chromStart', 'chromEnd', 'name', 'score', 'strand', 'signalValue', 'pValue', 'qvalue', 'peak'
+    ]
+    df = pd.read_csv(infile, sep="\t", header=None)
+    df.columns = narrowPeak_header
+    
+    if as_pyranges:
+        peaks = pr.PyRanges(df.rename({"chrom": "Chromosome", "chromStart": "Start", "chromEnd": "End", "strand": "Strand"}, axis=1))
+        return peaks
+
+    return df

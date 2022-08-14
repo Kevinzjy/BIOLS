@@ -1,3 +1,4 @@
+Cython
 scipy
 numpy
 pandas
@@ -6,3 +7,5 @@ scikit-learn
 pandarallel
 UpSetPlot
 mappy
+pyranges
+

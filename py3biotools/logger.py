@@ -23,7 +23,7 @@ class ProgressBar(object):
 
     def update(self, x):
         """Update progress bar
-        
+
         Paramters
         ---------
         x : integer, (0 <= x <= 100)
@@ -38,11 +38,13 @@ class ProgressBar(object):
         time_stamp = time.strftime("[%a %Y-%m-%d %H:%M:%S]", time.localtime())
         sys.stderr.write('\r%s [%-5s] [%s]' % (time_stamp, str(int(x)) + '%', '#' * p + '.' * (self.width - p)))
         sys.stderr.flush()
-        if x == 100:
-            sys.stderr.write('\n')
 
     def self_update(self):
         self.update(max(100, self.last_x + 1))
+
+    def close(self):
+        self.update(100)
+        sys.stderr.write('\n')
 
 
 class ProgManager(BaseManager):
